@@ -5,6 +5,7 @@ from aiogram.types import CallbackQuery, Message
 
 from bot import keyboards as kb
 from bot import locales, screens, texts, timeutil, ui
+from bot.coords import parse_coords
 from bot.db import Database
 from bot.keyboards import PlaceCb
 from bot.services import Place, WeatherError, WeatherService
@@ -40,22 +41,32 @@ async def save_location(
     await ui.show(bot, db, chat_id, text, markup, message_id)
 
 
-@router.message(F.location)
-async def on_location(message: Message, bot: Bot, state: FSMContext, db: Database, weather: WeatherService) -> None:
-    """Геолокация принимается в любой момент — и кнопкой, и через «скрепку»."""
+async def save_point(
+    message: Message, bot: Bot, state: FSMContext, db: Database, weather: WeatherService, lat: float, lon: float,
+) -> None:
+    """Точка от геолокации или от координат, введённых текстом."""
     chat_id = message.chat.id
-    lat, lon = message.location.latitude, message.location.longitude
     await ui.delete_incoming(message)
     await ui.leave_location_mode(bot, state, chat_id)
     user = await db.get_user(chat_id)
     await ui.show(bot, db, chat_id, texts.locating(user.lang))
-    title = await weather.reverse(lat, lon, user.lang) or f"{lat:.3f}, {lon:.3f}"
+    title = await weather.reverse(lat, lon, user.lang) or f"{lat:.4f}, {lon:.4f}"
     await save_location(bot, db, weather, chat_id, lat, lon, title, message.from_user.first_name)
+
+
+@router.message(F.location)
+async def on_location(message: Message, bot: Bot, state: FSMContext, db: Database, weather: WeatherService) -> None:
+    """Геолокация принимается в любой момент — и кнопкой, и через «скрепку»."""
+    await save_point(message, bot, state, db, weather, message.location.latitude, message.location.longitude)
 
 
 @router.message(StateFilter(None, Form.location), F.text, ~F.text.startswith("/"))
 async def on_search(message: Message, bot: Bot, state: FSMContext, db: Database, weather: WeatherService) -> None:
-    """Любой текст вне других режимов — поиск местности по названию."""
+    """Любой текст вне других режимов — координаты или поиск местности по названию."""
+    point = parse_coords(message.text)
+    if point:
+        await save_point(message, bot, state, db, weather, *point)
+        return
     chat_id = message.chat.id
     query = " ".join(message.text.split())[:64]
     await ui.delete_incoming(message)

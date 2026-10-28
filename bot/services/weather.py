@@ -80,7 +80,8 @@ class WeatherService:
         if self._session:
             await self._session.close()
 
-    async def _get(self, url: str, params: dict[str, str], ttl: float) -> dict:
+    async def get_json(self, url: str, params: dict[str, str], ttl: float) -> dict | list:
+        """GET с кэшем: повторный запрос с теми же параметрами в течение ttl секунд берётся из памяти."""
         key = f"{url}?{urlencode(sorted(params.items()))}"
         now = time.monotonic()
         cached = self._cache.get(key)
@@ -111,7 +112,7 @@ class WeatherService:
             "forecast_days": "7",
             "wind_speed_unit": "ms",
         }
-        data = await self._get(FORECAST_URL, params, FRESH_TTL if fresh else WEATHER_TTL)
+        data = await self.get_json(FORECAST_URL, params, FRESH_TTL if fresh else WEATHER_TTL)
         return Forecast.parse(data)
 
     async def air(self, lat: float, lon: float, fresh: bool = False) -> AirQuality | None:
@@ -148,7 +149,7 @@ class WeatherService:
             "timezone": "auto",
             "forecast_days": "2",
         }
-        data = await self._get(AIR_URL, params, FRESH_TTL if fresh else AIR_TTL)
+        data = await self.get_json(AIR_URL, params, FRESH_TTL if fresh else AIR_TTL)
         current = data.get("current") or {}
         sub_indexes = {
             p: current[f"us_aqi_{p}"]
@@ -170,7 +171,7 @@ class WeatherService:
         if not self._iqair_key:
             return None
         params = {"lat": f"{lat:.2f}", "lon": f"{lon:.2f}", "key": self._iqair_key}
-        data = await self._get(IQAIR_URL, params, IQAIR_TTL)
+        data = await self.get_json(IQAIR_URL, params, IQAIR_TTL)
         if data.get("status") != "success":
             raise WeatherError(f"IQAir: {data.get('data', {}).get('message', data.get('status'))}")
         return data["data"]
@@ -193,7 +194,7 @@ class WeatherService:
         if len(name) < 2:
             return []
         params = {"name": name, "count": "10", "language": lang, "format": "json"}
-        data = await self._get(GEOCODING_URL, params, GEO_TTL)
+        data = await self.get_json(GEOCODING_URL, params, GEO_TTL)
         places = [
             Place(
                 name=r["name"],
@@ -209,6 +210,17 @@ class WeatherService:
             places = [p for p in places if hint in p.full.lower()] or places
         return places[:6]
 
+    async def nominatim(self, url: str, params: dict[str, str]) -> dict | list:
+        """Запрос к Nominatim: правила сервиса — не больше 1 запроса в секунду."""
+        async with self._nominatim_lock:
+            delay = 1.0 - (time.monotonic() - self._nominatim_last)
+            if delay > 0:
+                await asyncio.sleep(delay)
+            try:
+                return await self.get_json(url, params, GEO_TTL)
+            finally:
+                self._nominatim_last = time.monotonic()
+
     async def reverse(self, lat: float, lon: float, lang: str = "ru") -> str | None:
         """Название места по координатам (Nominatim разрешает не больше 1 запроса в секунду)."""
         params = {
@@ -218,17 +230,11 @@ class WeatherService:
             "accept-language": f"{lang},en",
             "zoom": "14",
         }
-        async with self._nominatim_lock:
-            delay = 1.0 - (time.monotonic() - self._nominatim_last)
-            if delay > 0:
-                await asyncio.sleep(delay)
-            try:
-                data = await self._get(NOMINATIM_URL, params, GEO_TTL)
-            except WeatherError as e:
-                log.warning("Nominatim: %s", e)
-                return None
-            finally:
-                self._nominatim_last = time.monotonic()
+        try:
+            data = await self.nominatim(NOMINATIM_URL, params)
+        except WeatherError as e:
+            log.warning("Nominatim: %s", e)
+            return None
 
         address = data.get("address") or {}
         locality = next(

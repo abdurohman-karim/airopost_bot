@@ -13,6 +13,7 @@ import logging
 from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError, TelegramBadRequest
 from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State
 from aiogram.types import InlineKeyboardMarkup, Message, ReplyKeyboardRemove
 
 from bot import keyboards as kb
@@ -94,15 +95,27 @@ async def send_fresh(
     return message.message_id
 
 
-async def enter_location_mode(bot: Bot, state: FSMContext, chat_id: int, lang: str) -> None:
+async def enter_location_mode(
+    bot: Bot,
+    state: FSMContext,
+    chat_id: int,
+    lang: str,
+    mode: State = Form.location,
+    hint: str | None = None,
+    **data,
+) -> None:
     """Кнопку «Отправить геолокацию» умеет только обычная (не inline) клавиатура,
-    поэтому на время выбора под живым сообщением появляется подсказка с ней."""
+    поэтому на время выбора под живым сообщением появляется подсказка с ней.
+    Если этот режим уже включён, подсказка остаётся на месте — обновляются только данные."""
+    if await state.get_state() == mode.state and (await state.get_data()).get("prompt_id"):
+        await state.update_data(**data)
+        return
     await leave_location_mode(bot, state, chat_id)
-    message = await bot.send_message(
-        chat_id, texts.location_keyboard_hint(lang), reply_markup=kb.location_reply(lang)
-    )
-    await state.set_state(Form.location)
-    await state.update_data(prompt_id=message.message_id)
+    # На маршруте точку обновляют много раз — там кнопка не прячется после нажатия
+    keyboard = kb.location_reply(lang, one_time=mode != Form.peak_route)
+    message = await bot.send_message(chat_id, hint or texts.location_keyboard_hint(lang), reply_markup=keyboard)
+    await state.set_state(mode)
+    await state.update_data(prompt_id=message.message_id, **data)
 
 
 async def leave_location_mode(bot: Bot, state: FSMContext, chat_id: int) -> None:

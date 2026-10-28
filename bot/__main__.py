@@ -9,10 +9,11 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import BotCommand
 
 from bot import handlers, locales, scheduler
+from bot.catalog import PEAKS
 from bot.config import load_config
 from bot.db import Database
 from bot.middlewares import UserMiddleware
-from bot.services import WeatherService
+from bot.services import MountainService, WeatherService
 
 
 async def set_commands(bot: Bot) -> None:
@@ -37,12 +38,15 @@ async def main() -> None:
 
     db = Database(config.db_path, config.default_time)
     await db.connect()
+    await db.seed_catalog(PEAKS)
     weather = WeatherService(iqair_key=config.iqair_key)
     await weather.start()
 
     bot = Bot(config.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     storage = MemoryStorage()
-    dp = Dispatcher(storage=storage, db=db, weather=weather)
+    dp = Dispatcher(
+        storage=storage, db=db, weather=weather, mountains=MountainService(weather), admins=config.admin_ids,
+    )
     dp.message.filter(F.chat.type == ChatType.PRIVATE)
     dp.message.outer_middleware(UserMiddleware(db))
     dp.callback_query.outer_middleware(UserMiddleware(db))
@@ -50,6 +54,8 @@ async def main() -> None:
 
     await set_commands(bot)
     logging.info("Качество воздуха: %s", "IQAir + Open-Meteo" if config.iqair_key else "Open-Meteo (CAMS)")
+    if not config.admin_ids:
+        logging.warning("ADMIN_IDS не задан — публикация вершин пользователей в каталог отключена")
 
     scheduler_task = asyncio.create_task(scheduler.run(bot, db, weather, storage))
     try:

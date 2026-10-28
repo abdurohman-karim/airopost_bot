@@ -168,6 +168,8 @@ STRINGS = {
         "Yoki kiritish maydoni ostidagi <b>«📍 Joylashuvni yuborish»</b> tugmasini bosing — "
         "prognoz aynan sizning joyingiz uchun boʻladi."
     ),
+    "coords_hint": "🧭 Yoki koordinatalarni matn bilan: <code>41.49519, 70.058671</code> — xaritadan nusxalash mumkin.",
+    "coords_error": "❗️ Koordinatalarni tushunmadim. Misol: <code>41.49519, 70.058671</code>\n",
     "location_keyboard_hint": "⌨️ Joylashuv tugmasi — kiritish maydoni ostida 👇",
     "searching": "🔎 «{q}» qidirilmoqda…",
     "locating": "📡 Joy aniqlanmoqda…",
@@ -219,3 +221,198 @@ STRINGS = {
     "cmd_settings": "⚙️ Sozlamalar va xulosa vaqti",
     "cmd_language": "🌐 Til",
 }
+
+# ── togʻlar ──
+STRINGS.update({
+    "m_title": "⛰ <b>Togʻlar</b>",
+    "m_intro": (
+        "Choʻqqilar uchun prognoz: turli balandlikdagi harorat va shamol, nol izoterma, "
+        "yogʻingarchilik, momaqaldiroq va chiqish uchun eng qulay kunlar."
+    ),
+    "m_empty": "Hozircha saqlangan choʻqqilar yoʻq. Birinchisini qoʻshing 👇",
+    "m_saved": "Saqlangan choʻqqilar:",
+    "m_add_prompt": (
+        "⛰ <b>Yangi choʻqqi</b>\n\n"
+        "Choʻqqi yoki dovon nomini yozing, masalan: <i>Katta Chimyon</i>, "
+        "<i>Qizilnura</i>, <i>Lenin choʻqqisi</i>.\n\n"
+        "Yoki xaritadagi nuqtani yuboring: 📎 → <b>Joylashuv</b> → belgini choʻqqiga suring → "
+        "<b>«Tanlangan joylashuvni yuborish»</b>."
+    ),
+    "m_searching": "🔎 «{q}» choʻqqisi qidirilmoqda…",
+    "m_results": "🔎 «{q}» boʻyicha topildi. Choʻqqini tanlang 👇",
+    "m_not_found": (
+        "😕 «{q}» choʻqqisi topilmadi.\n\n"
+        "Boshqacha yozib koʻring (Big Chimgan, Большой Чимган) yoki xaritadagi nuqtani yuboring."
+    ),
+    "m_point_name": "Nuqta {lat}, {lon}",
+    "m_snapped": "📍 Belgi OpenStreetMap’dagi eng yaqin choʻqqiga bogʻlandi — nomi va balandligi oʻsha yerdan.",
+    "m_pin_hint": (
+        "ℹ️ {ele} m balandlik relyef xaritasidan olindi — oʻtkir choʻqqilarda u pastroq chiqishi mumkin. "
+        "Aniqlashtirish yoki nomini oʻzgartirish: ✏️ Oʻzgartirish."
+    ),
+    "m": "m",
+    "m_now": "<b>Hozir choʻqqida</b> · {time}",
+    "m_temp": "🌡 <b>{t}</b> · his qilinishi {feels}",
+    "m_wind": "💨 Shamol <b>{v} m/s</b> {dir} {arrow}",
+    "m_in_cloud": "🌫 Choʻqqi bulut ichida — koʻrinish yomon",
+    "m_precip": "{icon} {phase} {mm} mm/soat · ehtimoli {p}%",
+    "m_no_precip": "☀️ Yogʻingarchiliksiz · ehtimoli {p}%",
+    "m_snow": "qor",
+    "m_sleet": "hoʻl qor",
+    "m_rain": "yomgʻir",
+    "m_fl": "🧊 Nol izoterma: <b>{h} m</b>",
+    "m_fl_below": " — choʻqqida sovuq",
+    "m_fl_above": " — choʻqqidan yuqorida",
+    "m_storm": "⚡️ Momaqaldiroq xavfi: {level}",
+    "m_storm_levels": ["past", "oʻrtacha", "yuqori"],
+    "m_thunder_now": "⛈ <b>Momaqaldiroq!</b>",
+    "m_uv": "🔆 Kunduzi UB {uv} gacha (balandlik hisobga olingan) — koʻzoynak va krem shart",
+    "m_sun": "🌅 Quyosh chiqishi {rise} · botishi {set}",
+    "m_windows": "<b>Chiqish uchun qulay kunlar</b>",
+    "m_good": "qulay",
+    "m_caution": "ehtiyotkorlik bilan",
+    "m_bad": "tavsiya etilmaydi",
+    "r_thunder": "momaqaldiroq",
+    "r_storm_risk": "momaqaldiroq xavfi",
+    "r_wind": "shamol {v} m/s gacha",
+    "r_precip": "{phase} {mm} mm",
+    "r_prob": "yogʻingarchilik {p}%",
+    "r_cold": "his qilinishi {t} gacha",
+    "r_cloud": "{h} soat bulut ichida",
+    "m_updated": "<i>Maʼlumotlar {time} holatiga. Model prognozi {ele} m balandlik uchun.</i>",
+    "m_profile_title": "📊 <b>Balandlik profili</b> · {name}",
+    "m_profile_legend": "<i>balandlik · harorat (his qilinishi) · shamol · yogʻin</i>",
+    "m_fl_row": "── 🧊 0° — {h} m ──",
+    "m_you": " (siz)",
+    "m_profile_note": (
+        "<i>Model boʻyicha erkin atmosfera harorati. Kunduzi quyoshli yonbagʻirlarda issiqroq, "
+        "kechasi vodiylarda sovuqroq boʻlishi mumkin.</i>"
+    ),
+    "m_hourly_title": "🕐 <b>Choʻqqi soatma-soat</b> · {name} ({ele} m)",
+    "m_hourly_legend": "<i>harorat (his qilinishi) · shamol · yogʻin</i>",
+    "m_outlook_title": "📅 <b>Chiqish uchun kunlar</b> · {name}",
+    "m_outlook_day": "🌡 {tmin}…{tmax} (his qilinishi {feels} gacha) · 💨 {wind} m/s gacha",
+    "m_outlook_fl": " · 🧊 0° {lo}–{hi} m",
+    "m_outlook_note": "<i>Baho choʻqqi balandligida kunduzgi 06–18 soatlar boʻyicha.</i>",
+    "m_precip_none": "☀️ yogʻingarchiliksiz",
+    "m_route_prompt": (
+        "🧗 <b>Men yoʻldaman</b> · {name}\n\n"
+        "Pastdagi tugma orqali joylashuvingizni yuboring — shu yerdagi, choʻqqidagi "
+        "va oradagi balandliklardagi ob-havoni koʻrsataman.\n\n"
+        "<i>Kuchsiz internet ham yetadi: javob — bitta qisqa xabar.</i>"
+    ),
+    "m_route_hint": "⌨️ «Joylashuvni yuborish» tugmasi — kiritish maydoni ostida 👇",
+    "m_route_title": "🧗 <b>Yoʻlda</b> · {name}",
+    "m_route_you": "📍 Siz: <b>{ele} m</b> · choʻqqigacha {km} km va {climb} m",
+    "m_route_top": "📍 Siz choʻqqi yonidasiz: <b>{ele} m</b>",
+    "m_route_sun": "🕐 {time} · quyosh botishi {set}, yorugʻ vaqt {left} qoldi",
+    "m_route_dark": "🌙 {time} · qorongʻi, quyosh {rise} da chiqadi",
+    "m_here": "<b>Shu yerda:</b> {icon} {t}, his qilinishi {feels}, shamol {v} m/s",
+    "m_summit_short": "<b>Choʻqqida:</b> {t}, his qilinishi {feels}, shamol {v} m/s",
+    "m_way_up": "<b>Yuqoriga yoʻlda</b>",
+    "m_next_hours": "<b>Choʻqqi yaqin soatlarda</b>",
+    "m_warnings": "<b>⚠️ Diqqat</b>",
+    "w_dark": "quyosh botishiga {h} soatdan kam qoldi — tushishni rejalashtiring",
+    "w_wind": "choʻqqida shamol {time} ga {v} m/s gacha kuchayadi",
+    "w_storm": "{time} ga momaqaldiroq xavfi",
+    "w_precip": "{time} ga choʻqqida {phase}",
+    "w_cold": "choʻqqida his qilinishi {t} gacha",
+    "w_cloud": "{time} ga choʻqqi bulut ichida qoladi",
+    "m_all_good": "✅ Yaqin soatlarda choʻqqida ob-havo barqaror",
+    "m_offline_header": (
+        "📥 <b>Oflayn prognoz</b> · {name} ({ele} m)\n"
+        "<i>{date}, {time} da saqlandi. Bot bu xabarni oʻchirmaydi.</i>"
+    ),
+    "m_ele_prompt": (
+        "✏️ <b>{name}</b> · {ele} m\n\n"
+        "Aniq balandlikni raqam bilan yuboring, masalan <i>3309</i>, yoki yangi nomni matn bilan."
+    ),
+    "m_ele_error": "❗️ Balandlik 100 dan 8900 m gacha raqam boʻlishi kerak.\n",
+    "m_delete_confirm": "🗑 <b>{name}</b> choʻqqisini oʻchirasizmi?",
+
+    "btn_mountains": "⛰ Togʻlar",
+    "btn_m_add": "➕ Choʻqqi qoʻshish",
+    "btn_m_profile": "📊 Balandlik profili",
+    "btn_m_hourly": "🕐 Soatma-soat",
+    "btn_m_outlook": "📅 7 kunlik oynalar",
+    "btn_m_route": "🧗 Men yoʻldaman",
+    "btn_m_offline": "📥 Oflayn saqlash",
+    "btn_m_ele": "✏️ Oʻzgartirish",
+    "btn_m_delete": "🗑 Oʻchirish",
+    "btn_m_back": "⬅️ Choʻqqilarga",
+    "btn_m_to_peak": "⬅️ Choʻqqiga",
+    "btn_m_yes_delete": "🗑 Ha, oʻchirish",
+    "btn_m_route_again": "📍 Nuqtani yangilash",
+    "btn_m_minus": "◀️ −3 soat",
+    "btn_m_plus": "+3 soat ▶️",
+    "btn_m_now": "🕐 Hozir",
+
+    "t_m_limit": "Koʻpi bilan {n} ta choʻqqi saqlash mumkin — keraksizini oʻchiring.",
+    "t_m_added": "⛰ Choʻqqi qoʻshildi",
+    "t_m_saved": "📥 Prognoz chatga saqlandi — internetsiz ham koʻrinadi",
+    "t_m_ele": "✅ Balandlik: {ele} m",
+    "t_m_renamed": "✅ Nomi oʻzgartirildi",
+    "t_m_deleted": "🗑 Choʻqqi oʻchirildi",
+    "t_m_missing": "Choʻqqi topilmadi — roʻyxatni qaytadan oching.",
+})
+
+# ── choʻqqilar katalogi va moderatsiya ──
+STRINGS.update({
+    "m_private_note": "🔒 Choʻqqilaringizni faqat siz koʻrasiz.",
+    "m_catalog_btn": "🏔 Oʻzbekiston choʻqqilari ({n})",
+    "m_catalog_title": "🏔 <b>Oʻzbekiston choʻqqilari</b>",
+    "m_catalog_intro": (
+        "Sayohat va choʻqqiga chiqish uchun asosiy choʻqqilar — hamma uchun ochiq. "
+        "Oʻz choʻqqingizni uning sahifasidagi 📢 tugmasi orqali katalogga taklif qilishingiz mumkin."
+    ),
+    "m_catalog_page": "<i>{n} sahifadan {p}-sahifa</i>",
+    "region_tashkent": "Toshkent viloyati",
+    "region_jizzakh": "Jizzax viloyati",
+    "region_surkhandarya": "Surxondaryo viloyati",
+    "region_community": "Foydalanuvchilar qoʻshgan",
+    "st_private": "🔒 Faqat siz koʻrasiz",
+    "st_pending": "⏳ Administrator tekshiruvida",
+    "st_approved": "✅ Katalogda eʼlon qilingan",
+    "st_rejected": "❌ Eʼlon qilish rad etildi — qayta yuborish mumkin",
+    "st_catalog": "🏔 Oʻzbekiston choʻqqilari katalogi",
+    "st_community": "🏔 Katalog · foydalanuvchi taklif qilgan",
+    "m_publish_confirm": (
+        "📢 <b>«{name}» eʼlon qilinsinmi?</b>\n\n"
+        "⛰ {ele} m · 📍 <code>{lat}, {lon}</code>\n\n"
+        "Choʻqqini administrator tekshiradi. Tasdiqlangach, u «Oʻzbekiston choʻqqilari» "
+        "katalogida paydo boʻladi va uni botning barcha foydalanuvchilari koʻradi."
+    ),
+    "m_published_notice": (
+        "✅ <b>«{name}» choʻqqingiz eʼlon qilindi!</b>\n"
+        "Endi uni «Oʻzbekiston choʻqqilari» katalogida hamma koʻradi."
+    ),
+    "m_rejected_notice": (
+        "❌ <b>«{name}» choʻqqisini eʼlon qilish rad etildi.</b>\n"
+        "Choʻqqi sizning roʻyxatingizda qoldi — uni faqat siz koʻrasiz."
+    ),
+    "btn_m_publish": "📢 Eʼlon qilish",
+    "btn_m_publish_yes": "✅ Tekshiruvga yuborish",
+    "btn_m_catalog_back": "⬅️ Katalogga",
+    "t_m_sent": "⏳ Administrator tekshiruviga yuborildi",
+    "t_m_duplicate": "Bu choʻqqi katalogda yoki tekshiruvda bor: {name}",
+    "t_m_pending": "Ariza allaqachon tekshiruvda",
+    "t_m_no_admin": "Administrator bilan bogʻlanib boʻlmadi — keyinroq urinib koʻring",
+    "t_m_readonly": "Bu umumiy katalogdagi choʻqqi — uni oʻzgartirib boʻlmaydi",
+
+    "a_request": (
+        "📢 <b>Eʼlon qilish uchun ariza #{id}</b>\n\n"
+        "⛰ <b>{name}</b> · {ele} m\n"
+        "📍 <code>{lat}, {lon}</code>\n"
+        "🗺 <a href=\"{map}\">Xaritada ochish</a>\n"
+        "👤 {author}"
+    ),
+    "a_approved": "✅ <b>Eʼlon qilindi</b> — {admin}",
+    "a_rejected": "❌ <b>Rad etildi</b> — {admin}",
+    "a_no_pending": "📭 Tekshiruvdagi arizalar yoʻq.",
+    "btn_a_approve": "✅ Eʼlon qilish",
+    "btn_a_reject": "❌ Rad etish",
+    "t_a_done": "Ariza allaqachon koʻrib chiqilgan",
+    "t_a_forbidden": "Faqat administrator uchun",
+    "t_a_approved": "✅ Eʼlon qilindi",
+    "t_a_rejected": "❌ Rad etildi",
+})

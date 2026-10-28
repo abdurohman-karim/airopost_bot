@@ -436,7 +436,8 @@ def time_saved(user: User) -> str:
 
 
 def location_prompt(lang: str) -> str:
-    return locales.get(lang)["location_prompt"]
+    loc = locales.get(lang)
+    return f"{loc['location_prompt']}\n\n{loc['coords_hint']}"
 
 
 def location_keyboard_hint(lang: str) -> str:

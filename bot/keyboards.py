@@ -7,6 +7,7 @@ from aiogram.types import (
 )
 
 from bot import locales
+from bot.catalog import REGIONS
 from bot.db import User
 from bot.locales import LANGS
 from bot.services import Place
@@ -44,10 +45,26 @@ def _lang_row(back: str) -> list[InlineKeyboardButton]:
     return [_btn(locales.get(code)["lang_name"], LangCb(code=code, back=back)) for code in LANGS]
 
 
+class MCb(CallbackData, prefix="m"):
+    a: str          # list | add | open | refresh | profile | hourly | outlook | route | offline | edit | del | del_yes
+    id: int = 0
+    p: int = 0      # страница или шаг времени
+
+
+class PeakPickCb(CallbackData, prefix="mp"):
+    idx: int
+
+
+class AdminCb(CallbackData, prefix="adm"):
+    a: str          # ok | no
+    id: int         # заявка в каталоге
+
+
 def welcome(lang: str) -> InlineKeyboardMarkup:
     loc = locales.get(lang)
     return InlineKeyboardMarkup(inline_keyboard=[
         [_btn(loc["btn_pick_place"], Nav(to="location"))],
+        [_btn(loc["btn_mountains"], MCb(a="list"))],
         _lang_row("home"),
     ])
 
@@ -57,7 +74,7 @@ def home(lang: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [_btn(loc["btn_refresh"], Nav(to="home", fresh=True))],
         [_btn(loc["btn_hourly"], Nav(to="hourly")), _btn(loc["btn_daily"], Nav(to="daily"))],
-        [_btn(loc["btn_air"], Nav(to="air"))],
+        [_btn(loc["btn_air"], Nav(to="air")), _btn(loc["btn_mountains"], MCb(a="list"))],
         [_btn(loc["btn_settings"], Nav(to="settings"))],
     ])
 
@@ -114,12 +131,12 @@ def location_prompt(user: User) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[_back(user.lang, _place_back(user))])
 
 
-def location_reply(lang: str) -> ReplyKeyboardMarkup:
+def location_reply(lang: str, one_time: bool = True) -> ReplyKeyboardMarkup:
     loc = locales.get(lang)
     return ReplyKeyboardMarkup(
         keyboard=[[KeyboardButton(text=loc["btn_send_location"], request_location=True)]],
         resize_keyboard=True,
-        one_time_keyboard=True,
+        one_time_keyboard=one_time,
         input_field_placeholder=loc["placeholder"],
     )
 
@@ -161,4 +178,146 @@ def error(lang: str, screen: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [_btn(loc["btn_retry"], Nav(to=screen, fresh=True))],
         [_btn(loc["btn_settings"], Nav(to="settings"))],
+    ])
+
+
+# ── горы ────────────────────────────────────────────────────────────────────
+
+def _to_peak(lang: str, peak_id: int) -> list[InlineKeyboardButton]:
+    return [_btn(locales.get(lang)["btn_m_to_peak"], MCb(a="open", id=peak_id))]
+
+
+def _to_list(lang: str) -> list[InlineKeyboardButton]:
+    return [_btn(locales.get(lang)["btn_m_back"], MCb(a="list"))]
+
+
+def mountains(lang: str, peaks: list, can_add: bool, catalog_count: int = 0) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    rows = [[_btn(loc("m_catalog_btn", n=catalog_count), MCb(a="cat"))]] if catalog_count else []
+    rows += [[_btn(f"⛰ {p.name} · {p.ele} {loc['m']}", MCb(a="open", id=p.id))] for p in peaks]
+    if can_add:
+        rows.append([_btn(loc["btn_m_add"], MCb(a="add"))])
+    return InlineKeyboardMarkup(inline_keyboard=[*rows, _back(lang)])
+
+
+def mountain_add(lang: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[_to_list(lang)])
+
+
+def peak_results(lang: str, labels: list[str]) -> InlineKeyboardMarkup:
+    rows = [[_btn(f"⛰ {label}", PeakPickCb(idx=i))] for i, label in enumerate(labels)]
+    return InlineKeyboardMarkup(inline_keyboard=[*rows, _to_list(lang)])
+
+
+def peak_not_found(lang: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [_btn(locales.get(lang)["btn_search_again"], MCb(a="add"))],
+        _to_list(lang),
+    ])
+
+
+def catalog(lang: str, regions: list[tuple[str, int]]) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    rows = [
+        [_btn(f"🗺 {loc['region_' + region]} ({count})", MCb(a="reg", id=REGIONS.index(region)))]
+        for region, count in regions
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=[*rows, _to_list(lang)])
+
+
+def catalog_region(lang: str, region: str, peaks: list, page: int, pages: int) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    region_id = REGIONS.index(region)
+    rows = [[_btn(f"⛰ {p.name} · {p.ele} {loc['m']}", MCb(a="open", id=p.id))] for p in peaks]
+    nav = []
+    if page > 0:
+        nav.append(_btn(loc["btn_earlier"], MCb(a="reg", id=region_id, p=page - 1)))
+    if page < pages - 1:
+        nav.append(_btn(loc["btn_later"], MCb(a="reg", id=region_id, p=page + 1)))
+    if nav:
+        rows.append(nav)
+    return InlineKeyboardMarkup(inline_keyboard=[*rows, [_btn(loc["btn_m_catalog_back"], MCb(a="cat"))]])
+
+
+def peak(lang: str, p, can_publish: bool = False) -> InlineKeyboardMarkup:
+    """Вершина из каталога — только просмотр; своя — ещё правка, удаление и публикация."""
+    loc = locales.get(lang)
+    rows = [
+        [_btn(loc["btn_refresh"], MCb(a="refresh", id=p.id))],
+        [_btn(loc["btn_m_profile"], MCb(a="profile", id=p.id)),
+         _btn(loc["btn_m_hourly"], MCb(a="hourly", id=p.id))],
+        [_btn(loc["btn_m_outlook"], MCb(a="outlook", id=p.id))],
+        [_btn(loc["btn_m_route"], MCb(a="route", id=p.id))],
+        [_btn(loc["btn_m_offline"], MCb(a="offline", id=p.id))],
+    ]
+    if p.public:
+        region = p.region if p.region in REGIONS else "community"
+        rows.append([_btn(loc["btn_m_catalog_back"], MCb(a="reg", id=REGIONS.index(region)))])
+        return InlineKeyboardMarkup(inline_keyboard=rows)
+    if can_publish and p.status in (None, "rejected"):
+        rows.append([_btn(loc["btn_m_publish"], MCb(a="pub", id=p.id))])
+    rows.append([_btn(loc["btn_m_ele"], MCb(a="edit", id=p.id)), _btn(loc["btn_m_delete"], MCb(a="del", id=p.id))])
+    return InlineKeyboardMarkup(inline_keyboard=[*rows, _to_list(lang)])
+
+
+def publish_confirm(lang: str, peak_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [_btn(locales.get(lang)["btn_m_publish_yes"], MCb(a="pub_yes", id=peak_id))],
+        _to_peak(lang, peak_id),
+    ])
+
+
+def admin_request(lang: str, request_id: int) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        _btn(loc["btn_a_approve"], AdminCb(a="ok", id=request_id)),
+        _btn(loc["btn_a_reject"], AdminCb(a="no", id=request_id)),
+    ]])
+
+
+def peak_profile(lang: str, peak_id: int, step: int, max_step: int) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    row = []
+    if step > 0:
+        row.append(_btn(loc["btn_m_minus"], MCb(a="profile", id=peak_id, p=step - 1)))
+        row.append(_btn(loc["btn_m_now"], MCb(a="profile", id=peak_id)))
+    if step < max_step:
+        row.append(_btn(loc["btn_m_plus"], MCb(a="profile", id=peak_id, p=step + 1)))
+    return InlineKeyboardMarkup(inline_keyboard=[row, _to_peak(lang, peak_id)])
+
+
+def peak_hourly(lang: str, peak_id: int, page: int, pages: int) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    row = []
+    if page > 0:
+        row.append(_btn(loc["btn_earlier"], MCb(a="hourly", id=peak_id, p=page - 1)))
+    if page < pages - 1:
+        row.append(_btn(loc["btn_later"], MCb(a="hourly", id=peak_id, p=page + 1)))
+    rows = [row] if row else []
+    return InlineKeyboardMarkup(inline_keyboard=[*rows, _to_peak(lang, peak_id)])
+
+
+def peak_back(lang: str, peak_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[_to_peak(lang, peak_id)])
+
+
+def peak_route(lang: str, peak_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [_btn(locales.get(lang)["btn_m_profile"], MCb(a="profile", id=peak_id))],
+        _to_peak(lang, peak_id),
+    ])
+
+
+def peak_delete(lang: str, peak_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [_btn(locales.get(lang)["btn_m_yes_delete"], MCb(a="del_yes", id=peak_id))],
+        _to_peak(lang, peak_id),
+    ])
+
+
+def peak_error(lang: str, peak_id: int) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [_btn(loc["btn_retry"], MCb(a="refresh", id=peak_id))],
+        _to_list(lang),
     ])

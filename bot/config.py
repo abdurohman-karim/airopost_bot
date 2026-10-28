@@ -11,6 +11,7 @@ class Config:
     iqair_key: str | None
     db_path: str
     default_time: str
+    admin_ids: frozenset[int]
 
 
 def load_config() -> Config:
@@ -23,9 +24,16 @@ def load_config() -> Config:
     if not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", default_time):
         raise RuntimeError("DEFAULT_NOTIFY_TIME должен быть в формате ЧЧ:ММ, например 08:00")
 
+    admins = os.getenv("ADMIN_IDS", "").replace(";", ",")
+    try:
+        admin_ids = frozenset(int(x) for x in admins.split(",") if x.strip())
+    except ValueError:
+        raise RuntimeError("ADMIN_IDS — числовые Telegram id через запятую, например 123456789,987654321") from None
+
     return Config(
         bot_token=token,
         iqair_key=os.getenv("IQAIR_API_KEY", "").strip() or None,
         db_path=os.getenv("DB_PATH", "data/bot.db").strip(),
         default_time=default_time,
+        admin_ids=admin_ids,
     )
