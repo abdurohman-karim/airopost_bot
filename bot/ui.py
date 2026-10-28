@@ -94,11 +94,13 @@ async def send_fresh(
     return message.message_id
 
 
-async def enter_location_mode(bot: Bot, state: FSMContext, chat_id: int) -> None:
+async def enter_location_mode(bot: Bot, state: FSMContext, chat_id: int, lang: str) -> None:
     """Кнопку «Отправить геолокацию» умеет только обычная (не inline) клавиатура,
     поэтому на время выбора под живым сообщением появляется подсказка с ней."""
     await leave_location_mode(bot, state, chat_id)
-    message = await bot.send_message(chat_id, texts.LOCATION_KEYBOARD_HINT, reply_markup=kb.location_reply())
+    message = await bot.send_message(
+        chat_id, texts.location_keyboard_hint(lang), reply_markup=kb.location_reply(lang)
+    )
     await state.set_state(Form.location)
     await state.update_data(prompt_id=message.message_id)
 

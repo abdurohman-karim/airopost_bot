@@ -1,4 +1,4 @@
-"""Тексты всех экранов бота (HTML-разметка)."""
+"""Тексты всех экранов бота (HTML-разметка). Строки на каждом языке — в bot/locales."""
 from __future__ import annotations
 
 import math
@@ -6,65 +6,34 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from html import escape
 
-from bot import timeutil
+from bot import locales, timeutil
 from bot.db import User
+from bot.locales import Locale
 from bot.services import AirQuality, Forecast, Report
 
-WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
-MONTHS = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"]
-
-# Коды погоды WMO: (иконка днём, иконка ночью, описание)
-WMO = {
-    0: ("☀️", "🌙", "Ясно"),
-    1: ("🌤", "🌙", "Преимущественно ясно"),
-    2: ("⛅️", "☁️", "Переменная облачность"),
-    3: ("☁️", "☁️", "Пасмурно"),
-    45: ("🌫", "🌫", "Туман"),
-    48: ("🌫", "🌫", "Туман с изморозью"),
-    51: ("🌦", "🌧", "Слабая морось"),
-    53: ("🌦", "🌧", "Морось"),
-    55: ("🌧", "🌧", "Сильная морось"),
-    56: ("🌧", "🌧", "Ледяная морось"),
-    57: ("🌧", "🌧", "Сильная ледяная морось"),
-    61: ("🌦", "🌧", "Небольшой дождь"),
-    63: ("🌧", "🌧", "Дождь"),
-    65: ("🌧", "🌧", "Сильный дождь"),
-    66: ("🌧", "🌧", "Ледяной дождь"),
-    67: ("🌧", "🌧", "Сильный ледяной дождь"),
-    71: ("🌨", "🌨", "Небольшой снег"),
-    73: ("🌨", "🌨", "Снег"),
-    75: ("❄️", "❄️", "Сильный снег"),
-    77: ("🌨", "🌨", "Снежные зёрна"),
-    80: ("🌦", "🌧", "Небольшой ливень"),
-    81: ("🌧", "🌧", "Ливень"),
-    82: ("⛈", "⛈", "Сильный ливень"),
-    85: ("🌨", "🌨", "Небольшой снегопад"),
-    86: ("❄️", "❄️", "Сильный снегопад"),
-    95: ("⛈", "⛈", "Гроза"),
-    96: ("⛈", "⛈", "Гроза с градом"),
-    99: ("⛈", "⛈", "Сильная гроза с градом"),
+# Коды погоды WMO: (иконка днём, иконка ночью)
+WMO_ICONS = {
+    0: ("☀️", "🌙"), 1: ("🌤", "🌙"), 2: ("⛅️", "☁️"), 3: ("☁️", "☁️"),
+    45: ("🌫", "🌫"), 48: ("🌫", "🌫"),
+    51: ("🌦", "🌧"), 53: ("🌦", "🌧"), 55: ("🌧", "🌧"), 56: ("🌧", "🌧"), 57: ("🌧", "🌧"),
+    61: ("🌦", "🌧"), 63: ("🌧", "🌧"), 65: ("🌧", "🌧"), 66: ("🌧", "🌧"), 67: ("🌧", "🌧"),
+    71: ("🌨", "🌨"), 73: ("🌨", "🌨"), 75: ("❄️", "❄️"), 77: ("🌨", "🌨"),
+    80: ("🌦", "🌧"), 81: ("🌧", "🌧"), 82: ("⛈", "⛈"),
+    85: ("🌨", "🌨"), 86: ("❄️", "❄️"),
+    95: ("⛈", "⛈"), 96: ("⛈", "⛈"), 99: ("⛈", "⛈"),
 }
 
-# Откуда дует ветер: (сокращение, стрелка — куда дует)
-DIRECTIONS = [
-    ("С", "↓"), ("СВ", "↙"), ("В", "←"), ("ЮВ", "↖"),
-    ("Ю", "↑"), ("ЮЗ", "↗"), ("З", "→"), ("СЗ", "↘"),
-]
+# Стрелка показывает, куда дует ветер (направление в API — откуда)
+ARROWS = ["↓", "↙", "←", "↖", "↑", "↗", "→", "↘"]
 
-BEAUFORT = [
-    (0.3, "штиль"), (1.6, "тихий"), (3.4, "лёгкий"), (5.5, "слабый"), (8.0, "умеренный"),
-    (10.8, "свежий"), (13.9, "сильный"), (17.2, "крепкий"), (20.8, "очень крепкий"),
-    (24.5, "шторм"), (28.5, "сильный шторм"), (32.7, "жестокий шторм"),
-]
-
-UV_LEVELS = [(3, "низкий"), (6, "умеренный"), (8, "высокий"), (11, "очень высокий")]
-
-PERIODS = {3: "Ночь", 9: "Утро", 15: "День", 21: "Вечер"}
+# Верхние границы шкал; названия — в локалях
+BEAUFORT = [0.3, 1.6, 3.4, 5.5, 8.0, 10.8, 13.9, 17.2, 20.8, 24.5, 28.5, 32.7]
+UV_LIMITS = [3, 6, 8, 11]
+EU_AQI_LIMITS = [20, 40, 60, 80, 100]
 
 
 @dataclass(frozen=True)
 class AqiLevel:
-    limit: int
     icon: str
     name: str
     advice: str
@@ -75,41 +44,17 @@ class AqiLevel:
 
 
 # Шкала US AQI — та же, что в приложении IQAir
-AQI_LEVELS = [
-    AqiLevel(50, "🟢", "хорошо",
-             "Воздух чистый — отличное время для прогулок и проветривания.",
-             "можно", "открыть", "не нужна", "не нужен"),
-    AqiLevel(100, "🟡", "умеренно",
-             "Качество приемлемое. Очень чувствительным людям лучше не нагружаться долго на улице.",
-             "можно", "можно открыть", "не нужна", "по желанию"),
-    AqiLevel(150, "🟠", "вредно для чувствительных групп",
-             "Детям, пожилым и людям с астмой или болезнями сердца лучше меньше бывать на улице.",
-             "сократить", "закрыть", "чувствительным — да", "включить"),
-    AqiLevel(200, "🔴", "вредно",
-             "Ограничьте время на улице и откажитесь от тренировок на воздухе.",
-             "избегать", "закрыть", "надеть", "включить"),
-    AqiLevel(300, "🟣", "очень вредно",
-             "Серьёзный риск для здоровья всех. Оставайтесь в помещении.",
-             "избегать", "закрыть", "обязательно", "включить"),
-    AqiLevel(10**6, "🟤", "опасно",
-             "Чрезвычайное загрязнение. Не выходите на улицу без крайней необходимости.",
-             "избегать", "закрыть", "обязательно (N95/FFP2)", "на максимум"),
-]
+AQI_LIMITS = [(50, "🟢"), (100, "🟡"), (150, "🟠"), (200, "🔴"), (300, "🟣"), (10**6, "🟤")]
 
-EU_AQI_LEVELS = [
-    (20, "хороший"), (40, "удовлетворительный"), (60, "умеренный"),
-    (80, "плохой"), (100, "очень плохой"),
-]
-
-# Подпись, название и суточная норма ВОЗ 2021 (мкг/м³)
+# Подпись и суточная норма ВОЗ 2021 (мкг/м³)
 POLLUTANTS = {
-    "pm2_5": ("PM2.5", "мелкие частицы", 15),
-    "pm10": ("PM10", "крупные частицы", 45),
-    "ozone": ("O₃", "озон", 100),
-    "nitrogen_dioxide": ("NO₂", "диоксид азота", 25),
-    "sulphur_dioxide": ("SO₂", "диоксид серы", 40),
-    "carbon_monoxide": ("CO", "угарный газ", 4000),
-    "dust": ("Пыль", "", None),
+    "pm2_5": ("PM2.5", 15),
+    "pm10": ("PM10", 45),
+    "ozone": ("O₃", 100),
+    "nitrogen_dioxide": ("NO₂", 25),
+    "sulphur_dioxide": ("SO₂", 40),
+    "carbon_monoxide": ("CO", 4000),
+    "dust": (None, None),
 }
 
 HOURS_PER_PAGE = 12
@@ -118,9 +63,9 @@ HOURLY_PAGES = 4
 
 # ── форматирование ──────────────────────────────────────────────────────────
 
-def weather(code: int | None, is_day: int | bool = True) -> tuple[str, str]:
-    day_icon, night_icon, text = WMO.get(code, ("🌡", "🌡", "—"))
-    return (day_icon if is_day else night_icon), text
+def weather(loc: Locale, code: int | None, is_day: int | bool = True) -> tuple[str, str]:
+    day_icon, night_icon = WMO_ICONS.get(code, ("🌡", "🌡"))
+    return (day_icon if is_day else night_icon), loc["wmo"].get(code, "—")
 
 
 def t(value: float | None) -> str:
@@ -130,224 +75,215 @@ def t(value: float | None) -> str:
     return f"+{r}°" if r > 0 else f"−{-r}°" if r < 0 else "0°"
 
 
-def num(value: float | None, digits: int = 0) -> str:
-    if value is None:
-        return "—"
-    return f"{value:.{digits}f}".replace(".", ",")
-
-
 def hm(dt: datetime) -> str:
     return dt.strftime("%H:%M")
 
 
-def date_label(d: date) -> str:
-    return f"{WEEKDAYS[d.weekday()]}, {d.day} {MONTHS[d.month - 1]}"
-
-
-def day_label(d: date, today: date) -> str:
+def day_label(loc: Locale, d: date, today: date) -> str:
     if d == today:
-        return f"Сегодня, {d.day} {MONTHS[d.month - 1]}"
+        return f"{loc['today']}, {loc.day_month(d)}"
     if (d - today).days == 1:
-        return f"Завтра, {d.day} {MONTHS[d.month - 1]}"
-    return date_label(d)
+        return f"{loc['tomorrow']}, {loc.day_month(d)}"
+    return loc.date(d)
 
 
-def direction(degrees: float | None) -> tuple[str, str]:
+def direction(loc: Locale, degrees: float | None) -> tuple[str, str]:
     if degrees is None:
         return "", ""
-    return DIRECTIONS[round(degrees / 45) % 8]
+    index = round(degrees / 45) % 8
+    return loc["directions"][index], ARROWS[index]
 
 
-def beaufort(speed: float) -> str:
-    return next((name for limit, name in BEAUFORT if speed < limit), "ураган")
+def _scale(value: float, limits: list[float], names: list[str]) -> str:
+    return next((name for limit, name in zip(limits, names) if value < limit), names[-1])
 
 
-def wind(speed: float | None, degrees: float | None, gusts: float | None = None) -> str:
+def wind(loc: Locale, speed: float | None, degrees: float | None, gusts: float | None = None) -> str:
     if speed is None:
         return "—"
     if round(speed) == 0:
-        text = "штиль"
+        text = loc["calm"]
     else:
-        short, arrow = direction(degrees)
-        text = f"<b>{round(speed)} м/с</b> {short} {arrow} ({beaufort(speed)})"
+        name, arrow = direction(loc, degrees)
+        force = _scale(speed, BEAUFORT, loc["beaufort"])
+        text = f"<b>{round(speed)} {loc['ms']}</b> {name} {arrow} ({force})"
     if gusts is not None and round(gusts) > max(round(speed), 0):
-        text += f", порывы до {round(gusts)} м/с"
+        text += ", " + loc("gusts", g=round(gusts))
     return text
 
 
-def pressure(hpa: float | None) -> str:
+def pressure(loc: Locale, hpa: float | None) -> str:
     if hpa is None:
         return "—"
-    return f"{round(hpa * 0.750062)} мм рт. ст. ({round(hpa)} гПа)"
+    return loc("pressure", mm=round(hpa * 0.750062), hpa=round(hpa))
 
 
-def visibility(meters: float) -> str:
-    return f"{num(meters / 1000)} км" if meters >= 1000 else f"{round(meters)} м"
+def visibility(loc: Locale, meters: float) -> str:
+    return f"{loc.num(meters / 1000)} {loc['km']}" if meters >= 1000 else f"{round(meters)} {loc['m']}"
 
 
-def uv_level(value: float) -> str:
-    return next((name for limit, name in UV_LEVELS if value < limit), "экстремальный")
-
-
-def uv(now: float | None, day_max: float | None) -> str:
+def uv(loc: Locale, now: float | None, day_max: float | None) -> str:
     if now is None:
         return "—"
     if day_max is None:
-        return f"{round(now)} ({uv_level(now)})"
-    return f"{round(now)} сейчас, макс. {round(day_max)} ({uv_level(day_max)})"
+        return f"{round(now)} ({_scale(now, UV_LIMITS, loc['uv_levels'])})"
+    return loc("uv_now_max", now=round(now), max=round(day_max), level=_scale(day_max, UV_LIMITS, loc["uv_levels"]))
 
 
-def duration(seconds: float | None) -> str:
+def duration(loc: Locale, seconds: float | None) -> str:
     if seconds is None:
         return "—"
     minutes = round(seconds / 60)
-    return f"{minutes // 60} ч {minutes % 60:02d} мин"
+    return loc("duration", h=minutes // 60, m=minutes % 60)
 
 
-def precipitation(day: dict) -> str:
+def precipitation(loc: Locale, day: dict) -> str:
     total = day.get("precipitation_sum") or 0
     chance = day.get("precipitation_probability_max")
     if total >= 0.1:
-        return f"осадки {num(total, 1)} мм" + (f" ({chance}%)" if chance is not None else "")
+        return loc("precip_sum", mm=loc.num(total, 1)) + (f" ({chance}%)" if chance is not None else "")
     if chance and chance >= 20:
-        return f"вероятность осадков {chance}%"
-    return "без осадков"
+        return loc("precip_chance", p=chance)
+    return loc["no_precip"]
 
 
-def aqi_level(aqi: float) -> AqiLevel:
-    return next(level for level in AQI_LEVELS if aqi <= level.limit)
+def aqi_level(loc: Locale, aqi: float) -> AqiLevel:
+    index, icon = next((i, icon) for i, (limit, icon) in enumerate(AQI_LIMITS) if aqi <= limit)
+    return AqiLevel(icon, *loc["aqi_levels"][index])
 
 
-def eu_aqi_level(value: float) -> str:
-    return next((name for limit, name in EU_AQI_LEVELS if value <= limit), "крайне плохой")
+def eu_aqi_level(loc: Locale, value: float) -> str:
+    names = loc["eu_aqi_levels"]
+    return next((name for limit, name in zip(EU_AQI_LIMITS, names) if value <= limit), names[-1])
 
 
-def concentration(value: float) -> str:
-    return num(value, 0 if value >= 100 else 1)
+def concentration(loc: Locale, value: float) -> str:
+    return loc.num(value, 0 if value >= 100 else 1)
 
 
-def pollutant(air: AirQuality, key: str) -> str:
-    label = POLLUTANTS.get(key, (key,))[0]
+def pollutant_label(loc: Locale, key: str) -> str:
+    return POLLUTANTS.get(key, (key, None))[0] or loc["dust"]
+
+
+def pollutant(loc: Locale, air: AirQuality, key: str) -> str:
+    label = pollutant_label(loc, key)
     value = air.pollutants.get(key)
-    return f"{label} · {concentration(value)} мкг/м³" if value is not None else label
+    return f"{label} · {concentration(loc, value)} {loc['ug']}" if value is not None else label
 
 
-def place(user: User) -> str:
-    return escape(user.place or "Моя местность")
+def place(loc: Locale, user: User) -> str:
+    return escape(user.place or loc["my_place"])
 
 
 # ── экраны ──────────────────────────────────────────────────────────────────
 
-def welcome(name: str) -> str:
-    return (
-        f"👋 <b>Привет, {escape(name)}!</b>\n\n"
-        "Я <b>AiroPost</b> — бот погоды и качества воздуха.\n\n"
-        "Каждый день в удобное время пришлю сводку:\n"
-        "🌡 температура и «ощущается как»\n"
-        "💨 ветер, порывы и направление\n"
-        "💧 влажность, давление, облачность, осадки\n"
-        "🔆 УФ-индекс, восход и закат\n"
-        "🌫 индекс качества воздуха AQI и загрязнители\n\n"
-        "Для начала выберите местность 👇"
-    )
+def welcome(lang: str, name: str) -> str:
+    return locales.get(lang)("welcome", name=escape(name))
 
 
-def greeting(hour: int) -> str:
+def greeting(lang: str, hour: int) -> str:
+    loc = locales.get(lang)
     if 5 <= hour < 12:
-        text = "🌅 <b>Доброе утро!</b>"
+        key = "greet_morning"
     elif 12 <= hour < 17:
-        text = "☀️ <b>Добрый день!</b>"
+        key = "greet_day"
     elif 17 <= hour < 23:
-        text = "🌆 <b>Добрый вечер!</b>"
+        key = "greet_evening"
     else:
-        text = "🌙 <b>Доброй ночи!</b>"
-    return f"{text} Ваша сводка погоды:"
+        key = "greet_night"
+    return f"{loc[key]} {loc['greet_suffix']}"
 
 
 def saved_header(user: User) -> str:
-    text = "✅ <b>Местность сохранена!</b>"
+    loc = locales.get(user.lang)
+    text = loc["saved"]
     if user.notify_enabled:
-        text += f"\nСводка будет приходить каждый день в {user.notify_time}."
+        text += "\n" + loc("saved_schedule", time=user.notify_time)
     return text
 
 
 def home(user: User, report: Report, header: str | None = None) -> str:
+    loc = locales.get(user.lang)
     fc = report.forecast
     c = fc.current
     now = fc.local_now()
     today = fc.daily[0] if fc.daily else {}
-    icon, desc = weather(c.get("weather_code"), c.get("is_day", 1))
+    icon, desc = weather(loc, c.get("weather_code"), c.get("is_day", 1))
 
     lines = [header, ""] if header else []
     lines += [
-        f"📍 <b>{place(user)}</b>",
-        f"<i>{date_label(now)}, {hm(now)}</i>",
+        f"📍 <b>{place(loc, user)}</b>",
+        f"<i>{loc.date(now)}, {hm(now)}</i>",
         "",
         f"{icon} <b>{t(c.get('temperature_2m'))}</b>  {desc}",
-        f"🤗 Ощущается как {t(c.get('apparent_temperature'))}",
+        loc("feels", t=t(c.get("apparent_temperature"))),
     ]
     if today:
-        lines.append(
-            f"🗓 Сегодня {t(today.get('temperature_2m_min'))} … {t(today.get('temperature_2m_max'))}, "
-            f"{precipitation(today)}"
-        )
+        lines.append(loc(
+            "today_range",
+            min=t(today.get("temperature_2m_min")),
+            max=t(today.get("temperature_2m_max")),
+            precip=precipitation(loc, today),
+        ))
 
-    cloud = f"☁️ Облачность: {num(c.get('cloud_cover'))}%"
+    cloud = loc("clouds", c=loc.num(c.get("cloud_cover")))
     if c.get("visibility") is not None:
-        cloud += f" · видимость {visibility(c['visibility'])}"
+        cloud += loc("visibility", v=visibility(loc, c["visibility"]))
     lines += [
         "",
-        f"💨 Ветер: {wind(c.get('wind_speed_10m'), c.get('wind_direction_10m'), c.get('wind_gusts_10m'))}",
-        f"💧 Влажность: {num(c.get('relative_humidity_2m'))}% · точка росы {t(c.get('dew_point_2m'))}",
-        f"🧭 Давление: {pressure(c.get('surface_pressure'))}",
+        loc("wind_line", wind=wind(loc, c.get("wind_speed_10m"), c.get("wind_direction_10m"), c.get("wind_gusts_10m"))),
+        loc("humidity", h=loc.num(c.get("relative_humidity_2m")), dew=t(c.get("dew_point_2m"))),
+        loc("pressure_line", p=pressure(loc, c.get("surface_pressure"))),
         cloud,
-        f"🔆 УФ-индекс: {uv(c.get('uv_index'), today.get('uv_index_max'))}",
+        loc("uv_line", uv=uv(loc, c.get("uv_index"), today.get("uv_index_max"))),
     ]
     if today.get("sunrise") and today.get("sunset"):
-        lines.append(
-            f"🌅 Восход {hm(today['sunrise'])} · закат {hm(today['sunset'])} · "
-            f"день {duration(today.get('daylight_duration'))}"
-        )
+        lines.append(loc(
+            "sun",
+            rise=hm(today["sunrise"]),
+            set=hm(today["sunset"]),
+            len=duration(loc, today.get("daylight_duration")),
+        ))
 
-    periods = upcoming_periods(fc, now)
+    periods = upcoming_periods(loc, fc, now)
     if periods:
-        lines += ["", "<b>Дальше</b>", *periods]
+        lines += ["", loc["next"], *periods]
 
-    lines += ["", *air_summary(report.air), "", schedule_line(user)]
+    lines += ["", *air_summary(loc, report.air), "", schedule_line(user)]
     return "\n".join(lines)
 
 
-def upcoming_periods(fc: Forecast, now: datetime, count: int = 4) -> list[str]:
+def upcoming_periods(loc: Locale, fc: Forecast, now: datetime, count: int = 4) -> list[str]:
     result = []
     for h in fc.upcoming_hours(now):
-        label = PERIODS.get(h["time"].hour)
+        label = loc["periods"].get(h["time"].hour)
         if not label:
             continue
-        icon, _ = weather(h.get("weather_code"), h.get("is_day", 1))
+        icon, _ = weather(loc, h.get("weather_code"), h.get("is_day", 1))
         result.append(
             f"{label} {icon} <b>{t(h.get('temperature_2m'))}</b> · "
-            f"💧{num(h.get('precipitation_probability'))}% · 💨{num(h.get('wind_speed_10m'))} м/с"
+            f"💧{loc.num(h.get('precipitation_probability'))}% · "
+            f"💨{loc.num(h.get('wind_speed_10m'))} {loc['ms']}"
         )
         if len(result) == count:
             break
     return result
 
 
-def air_summary(air: AirQuality | None) -> list[str]:
+def air_summary(loc: Locale, air: AirQuality | None) -> list[str]:
     if not air or air.aqi is None:
-        return ["🌫 Данные о качестве воздуха временно недоступны"]
-    level = aqi_level(air.aqi)
-    lines = [f"{level.icon} <b>Воздух: AQI {round(air.aqi)}</b> — {level.name}"]
+        return [loc["air_unavailable"]]
+    level = aqi_level(loc, air.aqi)
+    lines = [f"{level.icon} " + loc("air_short", aqi=round(air.aqi), level=level.name)]
     if air.main_pollutant:
-        lines.append(f"Основной загрязнитель: {pollutant(air, air.main_pollutant)}")
+        lines.append(loc("main_pollutant", p=pollutant(loc, air, air.main_pollutant)))
     lines.append(f"💡 {level.advice}")
     return lines
 
 
 def schedule_line(user: User) -> str:
-    if user.notify_enabled:
-        return f"🔔 Сводка каждый день в {user.notify_time}"
-    return "🔕 Ежедневная сводка выключена"
+    loc = locales.get(user.lang)
+    return loc("schedule_on", time=user.notify_time) if user.notify_enabled else loc["schedule_off"]
 
 
 def hourly_pages(fc: Forecast) -> int:
@@ -355,82 +291,88 @@ def hourly_pages(fc: Forecast) -> int:
 
 
 def hourly(user: User, fc: Forecast, page: int) -> str:
+    loc = locales.get(user.lang)
     now = fc.local_now()
     hours = fc.upcoming_hours(now)[page * HOURS_PER_PAGE:(page + 1) * HOURS_PER_PAGE]
-    lines = [
-        "🕐 <b>Почасовой прогноз</b>",
-        f"📍 {place(user)}",
-        "<i>температура (ощущается) · осадки · ветер</i>",
-    ]
+    lines = [loc["hourly_title"], f"📍 {place(loc, user)}", loc["hourly_legend"]]
     current_day = None
     for h in hours:
         day = h["time"].date()
         if day != current_day:
             current_day = day
-            lines += ["", f"<b>{day_label(day, now.date())}</b>"]
-        icon, _ = weather(h.get("weather_code"), h.get("is_day", 1))
+            lines += ["", f"<b>{day_label(loc, day, now.date())}</b>"]
+        icon, _ = weather(loc, h.get("weather_code"), h.get("is_day", 1))
         speed = h.get("wind_speed_10m")
-        _, arrow = direction(h.get("wind_direction_10m")) if speed and round(speed) else ("", "")
-        rain = f"💧{num(h.get('precipitation_probability'))}%"
+        arrow = direction(loc, h.get("wind_direction_10m"))[1] if speed and round(speed) else ""
+        rain = f"💧{loc.num(h.get('precipitation_probability'))}%"
         if (h.get("precipitation") or 0) >= 0.1:
-            rain += f" {num(h['precipitation'], 1)} мм"
+            rain += f" {loc.num(h['precipitation'], 1)} {loc['mm']}"
         lines.append(
             f"<code>{hm(h['time'])}</code> {icon} <b>{t(h.get('temperature_2m'))}</b> "
-            f"({t(h.get('apparent_temperature'))}) · {rain} · 💨{num(speed)} м/с {arrow}".rstrip()
+            f"({t(h.get('apparent_temperature'))}) · {rain} · 💨{loc.num(speed)} {loc['ms']} {arrow}".rstrip()
         )
     return "\n".join(lines)
 
 
 def daily(user: User, fc: Forecast) -> str:
+    loc = locales.get(user.lang)
     today = fc.local_now().date()
-    lines = ["📅 <b>Прогноз на 7 дней</b>", f"📍 {place(user)}"]
+    lines = [loc["daily_title"], f"📍 {place(loc, user)}"]
     for d in fc.daily:
-        icon, desc = weather(d.get("weather_code"))
-        short, arrow = direction(d.get("wind_direction_10m_dominant"))
+        icon, desc = weather(loc, d.get("weather_code"))
+        name, arrow = direction(loc, d.get("wind_direction_10m_dominant"))
         lines += [
             "",
-            f"<b>{day_label(d['time'], today)}</b> — {icon} {desc}",
-            f"🌡 {t(d.get('temperature_2m_min'))} … {t(d.get('temperature_2m_max'))} · {precipitation(d)}",
-            f"💨 {short} {arrow} до {num(d.get('wind_speed_10m_max'))} м/с, "
-            f"порывы {num(d.get('wind_gusts_10m_max'))} · 🔆 УФ {num(d.get('uv_index_max'))}",
+            f"<b>{day_label(loc, d['time'], today)}</b> — {icon} {desc}",
+            f"🌡 {t(d.get('temperature_2m_min'))} … {t(d.get('temperature_2m_max'))} · {precipitation(loc, d)}",
+            loc(
+                "daily_wind", dir=name, arrow=arrow,
+                max=loc.num(d.get("wind_speed_10m_max")),
+                g=loc.num(d.get("wind_gusts_10m_max")),
+                uv=loc.num(d.get("uv_index_max")),
+            ),
         ]
     return "\n".join(lines)
 
 
 def air_details(user: User, air: AirQuality | None) -> str:
-    lines = ["🌫 <b>Качество воздуха</b>", f"📍 {place(user)}", ""]
+    loc = locales.get(user.lang)
+    lines = [loc["air_title"], f"📍 {place(loc, user)}", ""]
     if not air or air.aqi is None:
-        lines.append("Данные временно недоступны. Попробуйте обновить через пару минут.")
+        lines.append(loc["air_na"])
         return "\n".join(lines)
 
-    level = aqi_level(air.aqi)
-    lines.append(f"{level.icon} <b>AQI {round(air.aqi)}</b> (US) — {level.name}")
+    level = aqi_level(loc, air.aqi)
+    lines.append(f"{level.icon} " + loc("aqi_line", aqi=round(air.aqi), level=level.name))
     if air.main_pollutant:
-        lines.append(f"Основной загрязнитель: <b>{pollutant(air, air.main_pollutant)}</b>")
+        lines.append(loc("main_pollutant", p=f"<b>{pollutant(loc, air, air.main_pollutant)}</b>"))
     if air.eu_aqi is not None:
-        lines.append(f"🇪🇺 Европейский индекс: {round(air.eu_aqi)} — {eu_aqi_level(air.eu_aqi)}")
+        lines.append(loc("eu_line", v=round(air.eu_aqi), level=eu_aqi_level(loc, air.eu_aqi)))
     source = air.source + (f" · {escape(air.station)}" if air.station else "")
-    lines.append(f"<i>Источник: {source}</i>")
+    lines.append(f"<i>{loc('source', s=source)}</i>")
 
     measured = [(k, v) for k, v in air.pollutants.items() if v is not None]
     if measured:
-        lines += ["", "<b>Загрязнители</b> <i>(× суточной нормы ВОЗ)</i>"]
+        lines += ["", loc["pollutants_title"]]
         for key, value in measured:
-            label, title, norm = POLLUTANTS[key]
+            norm = POLLUTANTS[key][1]
             mark = ""
             if norm:
                 ratio = value / norm
-                mark = f" ⚠️ ×{num(ratio, 1)}" if ratio > 1 else " ✅"
+                mark = f" ⚠️ ×{loc.num(ratio, 1)}" if ratio > 1 else " ✅"
+            title = loc["pollutants"].get(key)
             title = f" {title}" if title else ""
-            lines.append(f"• <b>{label}</b>{title} — {concentration(value)} мкг/м³{mark}")
+            lines.append(
+                f"• <b>{pollutant_label(loc, key)}</b>{title} — {concentration(loc, value)} {loc['ug']}{mark}"
+            )
 
     lines += [
         "",
-        "<b>Рекомендации</b>",
-        f"🚴 Спорт на улице: {level.sport}",
-        f"🪟 Окна: {level.windows}",
-        f"😷 Маска: {level.mask}",
-        f"🌀 Очиститель воздуха: {level.purifier}",
+        loc["advice_title"],
+        loc("sport", v=level.sport),
+        loc("windows", v=level.windows),
+        loc("mask", v=level.mask),
+        loc("purifier", v=level.purifier),
         f"💡 {level.advice}",
     ]
 
@@ -440,91 +382,82 @@ def air_details(user: User, air: AirQuality | None) -> str:
         if h["time"] > now and h["time"].hour % 3 == 0 and h.get("us_aqi") is not None
     ][:8]
     if upcoming:
-        cells = [f"{hm(h['time'])} {aqi_level(h['us_aqi']).icon}{round(h['us_aqi'])}" for h in upcoming]
-        lines += ["", "<b>Прогноз AQI</b> <i>(модель CAMS)</i>"]
+        cells = [f"{hm(h['time'])} {aqi_level(loc, h['us_aqi']).icon}{round(h['us_aqi'])}" for h in upcoming]
+        lines += ["", loc["aqi_forecast"]]
         lines += ["  ".join(cells[i:i + 4]) for i in range(0, len(cells), 4)]
 
-    lines += [
-        "",
-        "<i>Шкала: 🟢 0–50 · 🟡 51–100 · 🟠 101–150 · 🔴 151–200 · 🟣 201–300 · 🟤 300+</i>",
-    ]
+    lines += ["", loc["scale"]]
     return "\n".join(lines)
 
 
 def settings(user: User) -> str:
+    loc = locales.get(user.lang)
+    time_line = loc("s_time", time=user.notify_time)
+    if user.tz:
+        time_line += f" <i>({escape(user.tz)})</i>"
     lines = [
-        "⚙️ <b>Настройки</b>",
+        loc["settings_title"],
         "",
-        f"📍 Местность: <b>{escape(user.place) if user.place else 'не выбрана'}</b>",
-        f"⏰ Время сводки: <b>{user.notify_time}</b>" + (f" <i>({escape(user.tz)})</i>" if user.tz else ""),
-        f"🔔 Ежедневная сводка: <b>{'включена' if user.notify_enabled else 'выключена'}</b>",
+        loc("s_place", p=escape(user.place) if user.place else loc["s_place_none"]),
+        time_line,
+        loc("s_notify", state=loc["on"] if user.notify_enabled else loc["off"]),
     ]
     upcoming = timeutil.next_send(user)
     if upcoming:
         today = timeutil.local_now(user.tz).date()
-        when = "сегодня" if upcoming.date() == today else "завтра"
-        lines.append(f"📬 Следующая сводка: {when} в {hm(upcoming)}")
+        when = loc["today_l"] if upcoming.date() == today else loc["tomorrow_l"]
+        lines.append(loc("s_next", when=when, time=hm(upcoming)))
+    lines.append(loc("s_lang", name=loc["lang_name"]))
     return "\n".join(lines)
+
+
+def language(lang: str) -> str:
+    return locales.get(lang)["lang_title"]
 
 
 def time_hours(user: User, error: bool = False) -> str:
-    lines = [
-        "⏰ <b>Время ежедневной сводки</b>",
-        "",
-        f"Сейчас: <b>{user.notify_time}</b>" + (f" <i>(местное, {escape(user.tz)})</i>" if user.tz else ""),
-        "Выберите час 👇",
-        "",
-        "<i>Или отправьте время сообщением, например 07:30</i>",
-    ]
+    loc = locales.get(user.lang)
+    current = loc("time_current", time=user.notify_time)
+    if user.tz:
+        current += loc("time_local", tz=escape(user.tz))
+    lines = [loc["time_title"], "", current, loc["pick_hour"], "", loc["time_hint"]]
     if error:
-        lines.insert(0, "❗️ Не понял время. Напишите в формате ЧЧ:ММ, например 07:30\n")
+        lines.insert(0, loc["time_error"])
     return "\n".join(lines)
 
 
-def time_minutes(hour: int) -> str:
-    return f"⏰ <b>Время ежедневной сводки</b>\n\nЧас: <b>{hour:02d}</b>\nТеперь выберите минуты 👇"
+def time_minutes(lang: str, hour: int) -> str:
+    loc = locales.get(lang)
+    return f"{loc['time_title']}\n\n{loc('time_hour', h=f'{hour:02d}')}\n{loc['pick_minutes']}"
 
 
-def location_prompt() -> str:
-    return (
-        "📍 <b>Выбор местности</b>\n\n"
-        "Напишите название города или населённого пункта,\n"
-        "например: <i>Ташкент</i>, <i>Самарканд</i>, <i>Москва</i>.\n"
-        "Можно уточнить страну: <i>Бухара, Узбекистан</i>.\n\n"
-        "Или нажмите <b>«📍 Отправить геолокацию»</b> под полем ввода — "
-        "прогноз будет точно для вашего места."
-    )
+def time_saved(user: User) -> str:
+    return locales.get(user.lang)("time_saved", time=user.notify_time) + "\n\n" + settings(user)
 
 
-LOCATION_KEYBOARD_HINT = "⌨️ Кнопка геолокации — под полем ввода 👇"
+def location_prompt(lang: str) -> str:
+    return locales.get(lang)["location_prompt"]
 
 
-def searching(query: str) -> str:
-    return f"🔎 Ищу «{escape(query)}»…"
+def location_keyboard_hint(lang: str) -> str:
+    return locales.get(lang)["location_keyboard_hint"]
 
 
-def locating() -> str:
-    return "📡 Определяю местность…"
+def searching(lang: str, query: str) -> str:
+    return locales.get(lang)("searching", q=escape(query))
 
 
-def search_results(query: str) -> str:
-    return f"🔎 По запросу «{escape(query)}» нашлось несколько мест.\n\nВыберите нужное 👇"
+def locating(lang: str) -> str:
+    return locales.get(lang)["locating"]
 
 
-def not_found(query: str) -> str:
-    return (
-        f"😕 Не нашёл «{escape(query)}».\n\n"
-        "Проверьте написание или попробуйте другое название — например, ближайший крупный город. "
-        "Можно просто отправить геолокацию."
-    )
+def search_results(lang: str, query: str) -> str:
+    return locales.get(lang)("search_results", q=escape(query))
 
 
-def search_expired() -> str:
-    return "Результаты поиска устарели — отправьте название ещё раз."
+def not_found(lang: str, query: str) -> str:
+    return locales.get(lang)("not_found", q=escape(query))
 
 
-def error() -> str:
-    return (
-        "⚠️ <b>Не удалось получить данные о погоде</b>\n\n"
-        "Сервис погоды временно недоступен. Попробуйте через минуту."
-    )
+def error(lang: str) -> str:
+    return locales.get(lang)["error"]

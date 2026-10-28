@@ -186,13 +186,13 @@ class WeatherService:
             air = None
         return Report(forecast=forecast, air=air)
 
-    async def search(self, query: str) -> list[Place]:
+    async def search(self, query: str, lang: str = "ru") -> list[Place]:
         """Поиск населённого пункта. «Ташкент, Узбекистан» — после запятой уточнение."""
         name, _, hint = query.partition(",")
         name = name.strip()
         if len(name) < 2:
             return []
-        params = {"name": name, "count": "10", "language": "ru", "format": "json"}
+        params = {"name": name, "count": "10", "language": lang, "format": "json"}
         data = await self._get(GEOCODING_URL, params, GEO_TTL)
         places = [
             Place(
@@ -209,13 +209,13 @@ class WeatherService:
             places = [p for p in places if hint in p.full.lower()] or places
         return places[:6]
 
-    async def reverse(self, lat: float, lon: float) -> str | None:
+    async def reverse(self, lat: float, lon: float, lang: str = "ru") -> str | None:
         """Название места по координатам (Nominatim разрешает не больше 1 запроса в секунду)."""
         params = {
             "lat": f"{lat:.4f}",
             "lon": f"{lon:.4f}",
             "format": "jsonv2",
-            "accept-language": "ru",
+            "accept-language": f"{lang},en",
             "zoom": "14",
         }
         async with self._nominatim_lock:

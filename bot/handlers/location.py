@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from bot import keyboards as kb
-from bot import screens, texts, timeutil, ui
+from bot import locales, screens, texts, timeutil, ui
 from bot.db import Database
 from bot.keyboards import PlaceCb
 from bot.services import Place, WeatherError, WeatherService
@@ -29,7 +29,7 @@ async def save_location(
         # Прогноз нужен ещё и ради часового пояса — по нему считается время рассылки
         forecast = await weather.forecast(lat, lon)
     except WeatherError:
-        await ui.show(bot, db, chat_id, texts.error(), kb.not_found(user), message_id)
+        await ui.show(bot, db, chat_id, texts.error(user.lang), kb.not_found(user), message_id)
         return
 
     fields = {"lat": lat, "lon": lon, "place": title, "tz": forecast.tz_name}
@@ -47,8 +47,9 @@ async def on_location(message: Message, bot: Bot, state: FSMContext, db: Databas
     lat, lon = message.location.latitude, message.location.longitude
     await ui.delete_incoming(message)
     await ui.leave_location_mode(bot, state, chat_id)
-    await ui.show(bot, db, chat_id, texts.locating())
-    title = await weather.reverse(lat, lon) or f"{lat:.3f}, {lon:.3f}"
+    user = await db.get_user(chat_id)
+    await ui.show(bot, db, chat_id, texts.locating(user.lang))
+    title = await weather.reverse(lat, lon, user.lang) or f"{lat:.3f}, {lon:.3f}"
     await save_location(bot, db, weather, chat_id, lat, lon, title, message.from_user.first_name)
 
 
@@ -59,16 +60,16 @@ async def on_search(message: Message, bot: Bot, state: FSMContext, db: Database,
     query = " ".join(message.text.split())[:64]
     await ui.delete_incoming(message)
     await ui.leave_location_mode(bot, state, chat_id)
-    await ui.show(bot, db, chat_id, texts.searching(query))
-
     user = await db.get_user(chat_id)
+    await ui.show(bot, db, chat_id, texts.searching(user.lang, query))
+
     try:
-        places = await weather.search(query)
+        places = await weather.search(query, user.lang)
     except WeatherError:
-        await ui.show(bot, db, chat_id, texts.error(), kb.not_found(user))
+        await ui.show(bot, db, chat_id, texts.error(user.lang), kb.not_found(user))
         return
     if not places:
-        await ui.show(bot, db, chat_id, texts.not_found(query), kb.not_found(user))
+        await ui.show(bot, db, chat_id, texts.not_found(user.lang, query), kb.not_found(user))
         return
     if len(places) == 1:
         place = places[0]
@@ -76,7 +77,7 @@ async def on_search(message: Message, bot: Bot, state: FSMContext, db: Database,
         return
 
     await state.update_data(places=[p.to_dict() for p in places])
-    await ui.show(bot, db, chat_id, texts.search_results(query), kb.search_results(places, user))
+    await ui.show(bot, db, chat_id, texts.search_results(user.lang, query), kb.search_results(places, user))
 
 
 @router.callback_query(PlaceCb.filter())
@@ -88,15 +89,16 @@ async def on_place(
     db: Database,
     weather: WeatherService,
 ) -> None:
+    chat_id = callback.from_user.id
+    loc = locales.get((await db.get_user(chat_id)).lang)
     places = (await state.get_data()).get("places") or []
     if callback_data.idx >= len(places):
-        await callback.answer(texts.search_expired(), show_alert=True)
+        await callback.answer(loc["t_search_expired"], show_alert=True)
         return
     place = Place(**places[callback_data.idx])
-    chat_id = callback.from_user.id
     await ui.leave_location_mode(bot, state, chat_id)
     await save_location(
         bot, db, weather, chat_id, place.lat, place.lon, place.short, callback.from_user.first_name,
         message_id=callback.message.message_id if callback.message else None,
     )
-    await callback.answer("✅ Местность сохранена")
+    await callback.answer(loc["t_saved"])

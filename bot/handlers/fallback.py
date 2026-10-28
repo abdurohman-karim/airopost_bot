@@ -1,7 +1,8 @@
 from aiogram import Router
 from aiogram.types import CallbackQuery, Message
 
-from bot import ui
+from bot import locales, ui
+from bot.db import Database
 
 router = Router(name="fallback")
 
@@ -13,5 +14,6 @@ async def cleanup(message: Message) -> None:
 
 
 @router.callback_query()
-async def stale_button(callback: CallbackQuery) -> None:
-    await callback.answer("Кнопка устарела — отправьте /start", show_alert=True)
+async def stale_button(callback: CallbackQuery, db: Database) -> None:
+    lang = (await db.get_user(callback.from_user.id)).lang
+    await callback.answer(locales.get(lang)["t_stale"], show_alert=True)

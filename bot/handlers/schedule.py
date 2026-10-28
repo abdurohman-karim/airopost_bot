@@ -3,7 +3,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from bot import keyboards as kb
-from bot import texts, timeutil, ui
+from bot import locales, texts, timeutil, ui
 from bot.db import Database, User
 from bot.keyboards import TimeCb
 from bot.states import Form
@@ -26,15 +26,15 @@ async def on_time(callback: CallbackQuery, callback_data: TimeCb, bot: Bot, stat
 
     if callback_data.minute < 0:
         await state.set_state(Form.time)
-        hour = callback_data.hour
-        await ui.show(bot, db, chat_id, texts.time_minutes(hour), kb.time_minutes(hour), message_id)
+        lang, hour = (await db.get_user(chat_id)).lang, callback_data.hour
+        await ui.show(bot, db, chat_id, texts.time_minutes(lang, hour), kb.time_minutes(lang, hour), message_id)
         await callback.answer()
         return
 
     value = f"{callback_data.hour:02d}:{callback_data.minute:02d}"
     user = await _set_time(db, chat_id, value)
     await ui.show(bot, db, chat_id, texts.settings(user), kb.settings(user), message_id)
-    await callback.answer(f"✅ Сводка будет приходить в {value}")
+    await callback.answer(locales.get(user.lang)("t_time", time=value))
 
 
 @router.message(Form.time, F.text)
@@ -48,5 +48,4 @@ async def on_time_text(message: Message, bot: Bot, state: FSMContext, db: Databa
         return
     await state.clear()
     user = await _set_time(db, chat_id, value)
-    text = f"✅ Сводка будет приходить в <b>{value}</b>\n\n" + texts.settings(user)
-    await ui.show(bot, db, chat_id, text, kb.settings(user))
+    await ui.show(bot, db, chat_id, texts.time_saved(user), kb.settings(user))

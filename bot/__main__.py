@@ -8,16 +8,24 @@ from aiogram.enums import ChatType, ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import BotCommand
 
-from bot import handlers, scheduler
+from bot import handlers, locales, scheduler
 from bot.config import load_config
 from bot.db import Database
+from bot.middlewares import UserMiddleware
 from bot.services import WeatherService
 
-COMMANDS = [
-    BotCommand(command="start", description="🌤 Погода сейчас"),
-    BotCommand(command="location", description="📍 Сменить местность"),
-    BotCommand(command="settings", description="⚙️ Настройки и время сводки"),
-]
+
+async def set_commands(bot: Bot) -> None:
+    """Меню команд на языке интерфейса Telegram; для остальных языков — английское."""
+    for code in (None, *locales.LANGS):
+        loc = locales.get(code or "en")
+        commands = [
+            BotCommand(command="start", description=loc["cmd_start"]),
+            BotCommand(command="location", description=loc["cmd_location"]),
+            BotCommand(command="settings", description=loc["cmd_settings"]),
+            BotCommand(command="language", description=loc["cmd_language"]),
+        ]
+        await bot.set_my_commands(commands, language_code=code)
 
 
 async def main() -> None:
@@ -36,9 +44,11 @@ async def main() -> None:
     storage = MemoryStorage()
     dp = Dispatcher(storage=storage, db=db, weather=weather)
     dp.message.filter(F.chat.type == ChatType.PRIVATE)
+    dp.message.outer_middleware(UserMiddleware(db))
+    dp.callback_query.outer_middleware(UserMiddleware(db))
     dp.include_routers(*handlers.routers())
 
-    await bot.set_my_commands(COMMANDS)
+    await set_commands(bot)
     logging.info("Качество воздуха: %s", "IQAir + Open-Meteo" if config.iqair_key else "Open-Meteo (CAMS)")
 
     scheduler_task = asyncio.create_task(scheduler.run(bot, db, weather, storage))

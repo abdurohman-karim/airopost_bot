@@ -19,7 +19,7 @@ async def _open(screen: str, message: Message, bot: Bot, state: FSMContext, db: 
     text, markup = await screens.build(screen, user, weather, name=message.from_user.first_name)
     await ui.send_fresh(bot, db, chat_id, text, markup)
     if screen == "location":
-        await ui.enter_location_mode(bot, state, chat_id)
+        await ui.enter_location_mode(bot, state, chat_id, user.lang)
 
 
 @router.message(CommandStart())
@@ -36,3 +36,8 @@ async def cmd_location(message: Message, bot: Bot, state: FSMContext, db: Databa
 @router.message(Command("settings"))
 async def cmd_settings(message: Message, bot: Bot, state: FSMContext, db: Database, weather: WeatherService) -> None:
     await _open("settings", message, bot, state, db, weather)
+
+
+@router.message(Command("language", "lang"))
+async def cmd_language(message: Message, bot: Bot, state: FSMContext, db: Database, weather: WeatherService) -> None:
+    await _open("lang", message, bot, state, db, weather)

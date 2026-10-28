@@ -5,6 +5,8 @@ from pathlib import Path
 
 import aiosqlite
 
+from bot.locales import DEFAULT as DEFAULT_LANG
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
     user_id        INTEGER PRIMARY KEY,
@@ -16,11 +18,15 @@ CREATE TABLE IF NOT EXISTS users (
     notify_enabled INTEGER NOT NULL DEFAULT 1,
     last_sent      TEXT,             -- местная дата последней рассылки, YYYY-MM-DD
     menu_msg_id    INTEGER,          -- «живое» сообщение бота, которое редактируется
+    lang           TEXT,             -- ru | uz | en
     created_at     TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 """
 
-COLUMNS = {"lat", "lon", "place", "tz", "notify_time", "notify_enabled", "last_sent", "menu_msg_id"}
+COLUMNS = {"lat", "lon", "place", "tz", "notify_time", "notify_enabled", "last_sent", "menu_msg_id", "lang"}
+
+# Колонки, добавленные после первой версии: (имя, тип) — для обновления старых баз
+MIGRATIONS = [("lang", "TEXT")]
 
 
 @dataclass
@@ -34,6 +40,7 @@ class User:
     notify_enabled: bool
     last_sent: str | None
     menu_msg_id: int | None
+    lang: str = DEFAULT_LANG
 
     @property
     def has_location(self) -> bool:
@@ -51,6 +58,7 @@ class User:
             notify_enabled=bool(row["notify_enabled"]),
             last_sent=row["last_sent"],
             menu_msg_id=row["menu_msg_id"],
+            lang=row["lang"] or DEFAULT_LANG,
         )
 
 
@@ -65,6 +73,11 @@ class Database:
         self._conn = await aiosqlite.connect(self._path)
         self._conn.row_factory = aiosqlite.Row
         await self._conn.executescript(SCHEMA)
+        async with self._conn.execute("PRAGMA table_info(users)") as cur:
+            existing = {row["name"] for row in await cur.fetchall()}
+        for name, kind in MIGRATIONS:
+            if name not in existing:
+                await self._conn.execute(f"ALTER TABLE users ADD COLUMN {name} {kind}")
         await self._conn.commit()
 
     async def close(self) -> None:
@@ -75,6 +88,14 @@ class Database:
     def conn(self) -> aiosqlite.Connection:
         assert self._conn, "Database.connect() не вызван"
         return self._conn
+
+    async def ensure_user(self, user_id: int, lang: str) -> None:
+        """Создать пользователя при первом обращении, сразу с языком из Telegram."""
+        await self.conn.execute(
+            "INSERT OR IGNORE INTO users (user_id, notify_time, lang) VALUES (?, ?, ?)",
+            (user_id, self._default_time, lang),
+        )
+        await self.conn.commit()
 
     async def get_user(self, user_id: int) -> User:
         """Возвращает пользователя, создавая запись при первом обращении."""

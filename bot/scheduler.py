@@ -52,12 +52,12 @@ async def deliver(bot: Bot, db: Database, weather: WeatherService, storage: Base
         return
 
     now = timeutil.local_now(user.tz)
-    text = texts.home(user, report, header=texts.greeting(now.hour))
+    text = texts.home(user, report, header=texts.greeting(user.lang, now.hour))
     state = FSMContext(storage, StorageKey(bot_id=bot.id, chat_id=user.user_id, user_id=user.user_id))
     try:
         await ui.leave_location_mode(bot, state, user.user_id)
         # Сводка — новое сообщение, чтобы пришло уведомление; прежнее меню удаляется
-        await ui.send_fresh(bot, db, user.user_id, text, kb.home())
+        await ui.send_fresh(bot, db, user.user_id, text, kb.home(user.lang))
     except TelegramRetryAfter as e:
         log.warning("Flood control, жду %s с", e.retry_after)
         await asyncio.sleep(e.retry_after)
