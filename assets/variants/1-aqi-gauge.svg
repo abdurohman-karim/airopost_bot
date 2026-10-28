@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>AiroPost — шкала AQI</title>
+  <defs>
+    <radialGradient id="bg" cx="0.5" cy="0.42" r="0.75">
+      <stop offset="0" stop-color="#1E293B"/>
+      <stop offset="1" stop-color="#020617"/>
+    </radialGradient>
+    <linearGradient id="sun" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FDE047"/>
+      <stop offset="1" stop-color="#F59E0B"/>
+    </linearGradient>
+    <linearGradient id="cloud" gradientUnits="userSpaceOnUse" x1="0" y1="190" x2="0" y2="330">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#CBD5E1"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <!-- шкала AQI: хорошо → умеренно → вредно для чувствительных → вредно → очень вредно → опасно -->
+  <g fill="none" stroke-width="30" stroke-linecap="butt" opacity="0.28" filter="url(#glow)">
+    <path d="M 122.7 373.9 A 178 178 0 0 1 78.3 266.9" stroke="#22C55E"/>
+    <path d="M 78.3 245.1 A 178 178 0 0 1 122.7 138.1" stroke="#FACC15"/>
+    <path d="M 138.1 122.7 A 178 178 0 0 1 245.1 78.3" stroke="#FB923C"/>
+    <path d="M 266.9 78.3 A 178 178 0 0 1 373.9 122.7" stroke="#EF4444"/>
+    <path d="M 389.3 138.1 A 178 178 0 0 1 433.7 245.1" stroke="#A855F7"/>
+    <path d="M 433.7 266.9 A 178 178 0 0 1 389.3 373.9" stroke="#9F1239"/>
+  </g>
+  <g fill="none" stroke-width="30" stroke-linecap="butt">
+    <path d="M 122.7 373.9 A 178 178 0 0 1 78.3 266.9" stroke="#22C55E"/>
+    <path d="M 78.3 245.1 A 178 178 0 0 1 122.7 138.1" stroke="#FACC15"/>
+    <path d="M 138.1 122.7 A 178 178 0 0 1 245.1 78.3" stroke="#FB923C"/>
+    <path d="M 266.9 78.3 A 178 178 0 0 1 373.9 122.7" stroke="#EF4444"/>
+    <path d="M 389.3 138.1 A 178 178 0 0 1 433.7 245.1" stroke="#A855F7"/>
+    <path d="M 433.7 266.9 A 178 178 0 0 1 389.3 373.9" stroke="#9F1239"/>
+  </g>
+
+  <!-- указатель на зелёной зоне -->
+  <circle cx="91.5" cy="324.1" r="24" fill="#FFFFFF"/>
+  <circle cx="91.5" cy="324.1" r="11" fill="#22C55E"/>
+
+  <!-- солнце за облаком -->
+  <circle cx="300" cy="214" r="54" fill="url(#sun)"/>
+
+  <!-- облако -->
+  <g fill="url(#cloud)">
+    <rect x="152" y="256" width="212" height="70" rx="35"/>
+    <circle cx="212" cy="260" r="44"/>
+    <circle cx="276" cy="240" r="62"/>
+    <circle cx="334" cy="270" r="38"/>
+  </g>
+
+  <!-- ветер под облаком -->
+  <g fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" opacity="0.9">
+    <path d="M 190 366 H 300"/>
+    <path d="M 226 398 H 286"/>
+  </g>
+</svg>

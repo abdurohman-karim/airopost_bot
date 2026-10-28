@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>AiroPost</title>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1E40AF"/>
+      <stop offset="0.55" stop-color="#0284C7"/>
+      <stop offset="1" stop-color="#06B6D4"/>
+    </linearGradient>
+    <radialGradient id="shine" cx="0.25" cy="0.18" r="0.7">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="sun" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FDE047"/>
+      <stop offset="1" stop-color="#F59E0B"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0.55" stop-color="#FDE68A" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#FDE68A" stop-opacity="0"/>
+    </radialGradient>
+    <!-- общий градиент на всё облако, чтобы не было швов между кругами -->
+    <linearGradient id="cloud" gradientUnits="userSpaceOnUse" x1="0" y1="150" x2="0" y2="340">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#D6ECFB"/>
+    </linearGradient>
+    <linearGradient id="fresh" gradientUnits="userSpaceOnUse" x1="200" y1="0" x2="330" y2="0">
+      <stop offset="0" stop-color="#4ADE80"/>
+      <stop offset="1" stop-color="#A7F3D0"/>
+    </linearGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+  </defs>
+
+  <!-- небо -->
+  <rect width="512" height="512" fill="url(#sky)"/>
+  <rect width="512" height="512" fill="url(#shine)"/>
+
+  <!-- солнце -->
+  <circle cx="340" cy="174" r="132" fill="url(#glow)"/>
+  <circle cx="340" cy="174" r="82" fill="url(#sun)"/>
+
+  <!-- тень облака -->
+  <ellipse cx="250" cy="340" rx="150" ry="30" fill="#0C4A6E" opacity="0.35" filter="url(#soft)"/>
+
+  <!-- облако -->
+  <g fill="url(#cloud)">
+    <rect x="104" y="250" width="290" height="88" rx="44"/>
+    <circle cx="180" cy="256" r="56"/>
+    <circle cx="268" cy="228" r="82"/>
+    <circle cx="346" cy="268" r="48"/>
+  </g>
+
+  <!-- ветер -->
+  <g fill="none" stroke-linecap="round" stroke-width="20">
+    <path d="M 132 392 H 380 a 26 26 0 1 0 -26 -26" stroke="#FFFFFF"/>
+    <path d="M 200 434 H 330" stroke="url(#fresh)"/>
+  </g>
+</svg>

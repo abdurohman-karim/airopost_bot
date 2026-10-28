@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>AiroPost — монограмма A</title>
+  <defs>
+    <radialGradient id="paper" cx="0.5" cy="0.35" r="0.8">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#E2E8F0"/>
+    </radialGradient>
+    <linearGradient id="letter" gradientUnits="userSpaceOnUse" x1="150" y1="110" x2="362" y2="410">
+      <stop offset="0" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#0D9488"/>
+    </linearGradient>
+    <linearGradient id="wind" gradientUnits="userSpaceOnUse" x1="110" y1="0" x2="400" y2="0">
+      <stop offset="0" stop-color="#FDBA74"/>
+      <stop offset="1" stop-color="#F97316"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="0.4" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#FDE047"/>
+      <stop offset="1" stop-color="#F59E0B"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#paper)"/>
+
+  <!-- буква A -->
+  <path d="M 156 404 L 256 128 L 356 404" fill="none" stroke="url(#letter)"
+        stroke-width="62" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- перекладина — поток ветра, проходящий сквозь букву -->
+  <path d="M 112 316 H 372 a 30 30 0 1 0 -30 -30" fill="none" stroke="#FFFFFF"
+        stroke-width="42" stroke-linecap="round"/>
+  <path d="M 112 316 H 372 a 30 30 0 1 0 -30 -30" fill="none" stroke="url(#wind)"
+        stroke-width="26" stroke-linecap="round"/>
+
+  <!-- солнце на вершине -->
+  <circle cx="256" cy="120" r="44" fill="#FFFFFF"/>
+  <circle cx="256" cy="120" r="34" fill="url(#sun)"/>
+</svg>
