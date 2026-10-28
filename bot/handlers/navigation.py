@@ -1,0 +1,49 @@
+from aiogram import Bot, Router
+from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery
+
+from bot import screens, texts, timeutil, ui
+from bot.db import Database
+from bot.keyboards import Nav
+from bot.services import WeatherService
+from bot.states import Form
+
+router = Router(name="navigation")
+
+
+@router.callback_query(Nav.filter())
+async def on_nav(
+    callback: CallbackQuery,
+    callback_data: Nav,
+    bot: Bot,
+    state: FSMContext,
+    db: Database,
+    weather: WeatherService,
+) -> None:
+    chat_id = callback.from_user.id
+    message_id = callback.message.message_id if callback.message else None
+    await ui.leave_location_mode(bot, state, chat_id)
+    user = await db.get_user(chat_id)
+    screen, toast = callback_data.to, None
+
+    if screen == "toggle":
+        enabled = not user.notify_enabled
+        fields = {"notify_enabled": enabled}
+        if enabled:
+            fields["last_sent"] = timeutil.last_sent_after_change(user.tz, user.notify_time)
+        user = await db.update(chat_id, **fields)
+        screen = "settings"
+        toast = "🔔 Сводка включена" if enabled else "🔕 Сводка выключена"
+    elif screen == "time":
+        await state.set_state(Form.time)
+
+    text, markup = await screens.build(
+        screen, user, weather,
+        page=callback_data.page, fresh=callback_data.fresh, name=callback.from_user.first_name,
+    )
+    if callback_data.fresh and text != texts.error():
+        toast = "🔄 Обновлено"
+    await ui.show(bot, db, chat_id, text, markup, message_id)
+    if screen == "location":
+        await ui.enter_location_mode(bot, state, chat_id)
+    await callback.answer(toast)
