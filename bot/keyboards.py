@@ -65,6 +65,11 @@ class TripCb(CallbackData, prefix="tr"):
     t: str = ""     # accept: ключ приглашения — без него контакт себе не добавить
 
 
+class SpotCb(CallbackData, prefix="sp"):
+    a: str          # passes | pass | ski | resort | skisub
+    k: str = ""     # ключ перевала или курорта из bot.catalog
+
+
 class PeakPickCb(CallbackData, prefix="mp"):
     idx: int
 
@@ -89,7 +94,7 @@ def home(lang: str) -> InlineKeyboardMarkup:
         [_btn(loc["btn_refresh"], Nav(to="home", fresh=True))],
         [_btn(loc["btn_hourly"], Nav(to="hourly")), _btn(loc["btn_daily"], Nav(to="daily"))],
         [_btn(loc["btn_air"], Nav(to="air")), _btn(loc["btn_mountains"], MCb(a="list"))],
-        [_btn(loc["btn_settings"], Nav(to="settings"))],
+        [_btn(loc["btn_passes"], SpotCb(a="passes")), _btn(loc["btn_settings"], Nav(to="settings"))],
     ])
 
 
@@ -219,6 +224,7 @@ def mountains(lang: str, peaks: list, can_add: bool, catalog_count: int = 0, tri
     rows += [[_btn(f"⛰ {p.name} · {p.ele} {loc['m']}", MCb(a="open", id=p.id))] for p in peaks]
     if can_add:
         rows.append([_btn(loc["btn_m_add"], MCb(a="add"))])
+    rows.append([_btn(loc["btn_ski"], SpotCb(a="ski")), _btn(loc["btn_passes"], SpotCb(a="passes"))])
     rows.append([_btn(loc["btn_sos"], MCb(a="sos"))])
     return InlineKeyboardMarkup(inline_keyboard=[*rows, _back(lang)])
 
@@ -446,4 +452,36 @@ def peak_error(lang: str, peak_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [_btn(loc["btn_retry"], MCb(a="refresh", id=peak_id))],
         _to_list(lang),
+    ])
+
+
+# ── перевалы и горнолыжка ───────────────────────────────────────────────────
+
+def passes(lang: str, items: list) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    rows = [[_btn(f"🛣 {p.name}", SpotCb(a="pass", k=p.key))] for p in items]
+    return InlineKeyboardMarkup(inline_keyboard=[
+        *rows, [_btn(loc["btn_refresh"], SpotCb(a="passes"))], [_btn(loc["btn_mountains"], MCb(a="list"))], _back(lang),
+    ])
+
+
+def pass_detail(lang: str, key: str) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [_btn(loc["btn_refresh"], SpotCb(a="pass", k=key))],
+        [_btn(loc["btn_passes_back"], SpotCb(a="passes"))],
+    ])
+
+
+def ski(lang: str, items: list) -> InlineKeyboardMarkup:
+    rows = [[_btn(f"⛷ {r.name}", SpotCb(a="resort", k=r.key))] for r in items]
+    return InlineKeyboardMarkup(inline_keyboard=[*rows, _to_list(lang)])
+
+
+def resort(lang: str, key: str, subscribed: bool) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [_btn(loc["btn_refresh"], SpotCb(a="resort", k=key))],
+        [_btn(loc["btn_ski_unsub" if subscribed else "btn_ski_sub"], SpotCb(a="skisub", k=key))],
+        [_btn(loc["btn_ski_back"], SpotCb(a="ski"))],
     ])

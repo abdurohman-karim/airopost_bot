@@ -22,10 +22,12 @@ from aiogram.fsm.storage.base import BaseStorage, StorageKey
 
 from bot import keyboards as kb
 from bot import mountain_texts as mt
+from bot import spot_texts as st
 from bot import timeutil, ui, weekend
 from bot import trip_texts as tt
+from bot.catalog import RESORTS
 from bot.db import Database, Peak, User
-from bot.services import MountainService
+from bot.services import MountainService, WeatherError
 from bot.services.mountain import DayOutlook
 from bot.states import Form
 
@@ -95,6 +97,10 @@ async def run(bot: Bot, db: Database, mountains: MountainService, storage: BaseS
             await tick(bot, db, mountains, storage)
         except Exception:
             log.exception("Ошибка рассылки прогноза на выходные")
+        try:
+            await powder(bot, db, mountains, storage)
+        except Exception:
+            log.exception("Ошибка оповещений о свежем снеге")
         await asyncio.sleep(CHECK_SECONDS)
 
 
@@ -210,3 +216,43 @@ async def _send_changes(
     for peak_id, snapshot in snapshots.items():
         await db.set_snapshot(user.user_id, peak_id, snapshot)
     log.info("Изменение прогноза на выходные отправлено %s", user.user_id)
+
+
+POWDER_HOURS = range(7, 11)   # о свежем снеге сообщаем утром, пока ещё можно успеть на склон
+
+
+async def powder(bot: Bot, db: Database, mountains: MountainService, storage: BaseStorage) -> None:
+    """Утром, если наверху курорта за сутки выпало не меньше POWDER_CM снега, — оповещение подписчикам."""
+    subs = await db.all_ski_subs()
+    if not subs:
+        return
+    resorts = {r[0]: r for r in RESORTS}
+    for row in subs:
+        raw = resorts.get(row["resort"])
+        if not raw:
+            continue
+        user = await db.get_user(row["user_id"])
+        resort = st.resorts(user.lang, [raw])[0]
+        try:
+            fc = await mountains.forecast(resort.lat, resort.lon, resort.top)
+        except WeatherError:
+            continue
+        now = fc.local_now()
+        if now.hour not in POWDER_HOURS or row["last_alert"] == now.date().isoformat():
+            continue
+        state = FSMContext(storage, StorageKey(bot_id=bot.id, chat_id=user.user_id, user_id=user.user_id))
+        if await state.get_state() in BUSY_STATES:
+            continue
+        snow = st.ski_now(resort, fc)
+        if not snow.powder:
+            continue
+        try:
+            await ui.send_fresh(bot, db, user.user_id, st.powder_alert(user.lang, resort, snow),
+                                kb.resort(user.lang, resort.key, True))
+        except TelegramForbiddenError:
+            await db.toggle_ski_sub(user.user_id, resort.key)
+            continue
+        except TelegramAPIError as e:
+            log.warning("Оповещение о снеге для %s не отправлено: %s", user.user_id, e)
+            continue
+        await db.ski_alerted(user.user_id, resort.key, now.date().isoformat())

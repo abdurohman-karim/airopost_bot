@@ -27,3 +27,19 @@ PEAKS = [
     ("khazret-sultan", "surkhandarya", "Хазрет Султан", "Hazrati Sulton", "Khazret Sultan",
      38.94778, 68.17247, 4643),
 ]
+
+# Перевалы на автодорогах: ключ, название ru / uz / en, дорога ru / uz / en, широта, долгота, высота (OpenStreetMap)
+PASSES = [
+    ("kamchik", "Камчик", "Qamchiq", "Kamchik", "Ташкент — Фергана (A373)", "Toshkent — Fargʻona (A373)",
+     "Tashkent — Fergana (A373)", 41.09637, 70.51982, 2268),
+    ("takhtakaracha", "Тахтакарача", "Taxtaqoracha", "Takhtakaracha", "Самарканд — Шахрисабз",
+     "Samarqand — Shahrisabz", "Samarkand — Shahrisabz", 39.28598, 66.94098, 1680),
+]
+
+# Горнолыжные курорты: ключ, название ru / uz / en, широта, долгота (низ), высота низа и верха трасс.
+# Низ — по модели рельефа в точке курорта, верх — примерная отметка верхней станции подъёмника.
+RESORTS = [
+    ("amirsoy", "Амирсой", "Amirsoy", "Amirsoy", 41.48749, 69.94215, 1600, 2290),
+    ("beldersay", "Бельдерсай", "Beldersoy", "Beldersay", 41.50227, 69.97736, 1550, 2300),
+    ("chimgan", "Чимган", "Chimyon", "Chimgan", 41.54350, 70.01580, 1600, 2100),
+]

@@ -54,6 +54,11 @@ SNOW_NEXT_HOURS = 24
 LOADING_WIND = 10                         # м/с: ветер при снегопаде переносит снег и набивает доски
 AVALANCHE_LEVELS = (1, 3, 5)              # баллы: повышенная, высокая, очень высокая
 
+# Дорога через перевал
+ICE_MIN, ICE_MAX = -4, 1                  # °C: мокрая дорога при такой температуре — гололёд
+WET_HOURS = 6                             # дорога остаётся мокрой столько часов после осадков
+ROAD_WIND = 15                            # м/с
+
 # Время в пути по горной тропе (правило Нейсмита, поправленное на горные тропы с рюкзаком)
 TRAIL_FACTOR = 1.3                        # тропа длиннее прямой на карте
 UP_KMH, UP_MH = 4.0, 400                  # подъём: км/ч по горизонтали + метров набора в час
@@ -269,14 +274,36 @@ class MountainForecast:
     def summit(self, row: dict) -> Conditions:
         return self.at(row, self.elevation)
 
-    def recent_snow(self, hours: int = PAST_DAYS * 24) -> float:
-        """Снег и мокрый снег на вершине за последние часы, мм воды (≈ см свежего снега)."""
-        now = self.local_now()
-        start = now - timedelta(hours=hours)
+    def snow_sum(self, start: datetime, end: datetime, z: float | None = None) -> float:
+        """Снег и мокрый снег на высоте z (по умолчанию — вершина) за [start, end), мм воды ≈ см."""
+        z = self.elevation if z is None else z
         return sum(
-            c.precip for c in (self.summit(h) for h in self.hourly if start <= h["time"] < now)
+            c.precip for c in (self.at(h, z) for h in self.hourly if start <= h["time"] < end)
             if c.phase in ("snow", "sleet")
         )
+
+    def recent_snow(self, hours: int = PAST_DAYS * 24) -> float:
+        """Снег на вершине за последние часы, мм воды (≈ см свежего снега)."""
+        now = self.local_now()
+        return self.snow_sum(now - timedelta(hours=hours), now)
+
+    def road(self, row: dict) -> list[str]:
+        """Что ждёт на дороге через перевал в этот час: snow | ice | rain | fog | wind."""
+        c = self.summit(row)
+        i = self.hourly.index(row)
+        wet = any((h.get("precipitation") or 0) >= 0.1 for h in self.hourly[max(0, i - WET_HOURS):i + 1])
+        flags = []
+        if c.phase in ("snow", "sleet"):
+            flags.append("snow")
+        elif c.temp is not None and ICE_MIN <= c.temp <= ICE_MAX and wet:
+            flags.append("ice")
+        elif c.phase == "rain":
+            flags.append("rain")
+        if c.in_cloud:
+            flags.append("fog")
+        if (c.wind or 0) >= ROAD_WIND:
+            flags.append("wind")
+        return flags
 
     def snow(self) -> SnowReport:
         """Свежий и ожидаемый снег на вершине и признаки лавинной опасности: много свежего снега,

@@ -71,6 +71,14 @@ CREATE TABLE IF NOT EXISTS trips (
 );
 CREATE INDEX IF NOT EXISTS trips_active ON trips (status, deadline);
 
+-- Оповещения о свежем снеге на горнолыжных курортах
+CREATE TABLE IF NOT EXISTS ski_subs (
+    user_id    INTEGER NOT NULL,
+    resort     TEXT    NOT NULL,     -- ключ из bot.catalog.RESORTS
+    last_alert TEXT,                 -- местная дата последнего оповещения
+    PRIMARY KEY (user_id, resort)
+);
+
 -- Подписки на прогноз выходных для вершин
 CREATE TABLE IF NOT EXISTS peak_subs (
     user_id    INTEGER NOT NULL,
@@ -447,6 +455,32 @@ class Database:
             "SELECT * FROM trips WHERE status = 'active' AND deadline <= ? AND alerted = 0", (now,)
         ) as cur:
             return [Trip.from_row(row) for row in await cur.fetchall()]
+
+    # ── свежий снег на курортах ──
+
+    async def ski_subs(self, user_id: int) -> set[str]:
+        async with self.conn.execute("SELECT resort FROM ski_subs WHERE user_id = ?", (user_id,)) as cur:
+            return {row[0] for row in await cur.fetchall()}
+
+    async def toggle_ski_sub(self, user_id: int, resort: str) -> bool:
+        """Включить или выключить оповещения; возвращает, включены ли они теперь."""
+        if resort in await self.ski_subs(user_id):
+            await self.conn.execute("DELETE FROM ski_subs WHERE user_id = ? AND resort = ?", (user_id, resort))
+            await self.conn.commit()
+            return False
+        await self.conn.execute("INSERT INTO ski_subs (user_id, resort) VALUES (?, ?)", (user_id, resort))
+        await self.conn.commit()
+        return True
+
+    async def all_ski_subs(self) -> list[aiosqlite.Row]:
+        async with self.conn.execute("SELECT * FROM ski_subs") as cur:
+            return list(await cur.fetchall())
+
+    async def ski_alerted(self, user_id: int, resort: str, day: str) -> None:
+        await self.conn.execute(
+            "UPDATE ski_subs SET last_alert = ? WHERE user_id = ? AND resort = ?", (day, user_id, resort)
+        )
+        await self.conn.commit()
 
     # ── для админа ──
 
