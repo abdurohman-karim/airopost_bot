@@ -47,8 +47,15 @@ def _lang_row(back: str) -> list[InlineKeyboardButton]:
 
 class MCb(CallbackData, prefix="m"):
     a: str          # list | add | open | refresh | profile | hourly | outlook | route | offline | edit | del | del_yes
+                    # | weekend | sub | sos
     id: int = 0
     p: int = 0      # страница или шаг времени
+
+
+class GearCb(CallbackData, prefix="mg"):
+    id: int         # вершина
+    d: int = 0      # день: 0 — сегодня (или первый день с прогнозом)
+    c: int = 0      # отмеченные вещи — биты по номерам из bot.gear.ITEMS
 
 
 class PeakPickCb(CallbackData, prefix="mp"):
@@ -77,6 +84,10 @@ def home(lang: str) -> InlineKeyboardMarkup:
         [_btn(loc["btn_air"], Nav(to="air")), _btn(loc["btn_mountains"], MCb(a="list"))],
         [_btn(loc["btn_settings"], Nav(to="settings"))],
     ])
+
+
+def home_only(lang: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[_back(lang)])
 
 
 def hourly(lang: str, page: int, pages: int) -> InlineKeyboardMarkup:
@@ -194,9 +205,12 @@ def _to_list(lang: str) -> list[InlineKeyboardButton]:
 def mountains(lang: str, peaks: list, can_add: bool, catalog_count: int = 0) -> InlineKeyboardMarkup:
     loc = locales.get(lang)
     rows = [[_btn(loc("m_catalog_btn", n=catalog_count), MCb(a="cat"))]] if catalog_count else []
+    if catalog_count or peaks:
+        rows.append([_btn(loc["btn_m_weekend"], MCb(a="weekend"))])
     rows += [[_btn(f"⛰ {p.name} · {p.ele} {loc['m']}", MCb(a="open", id=p.id))] for p in peaks]
     if can_add:
         rows.append([_btn(loc["btn_m_add"], MCb(a="add"))])
+    rows.append([_btn(loc["btn_sos"], MCb(a="sos"))])
     return InlineKeyboardMarkup(inline_keyboard=[*rows, _back(lang)])
 
 
@@ -239,16 +253,22 @@ def catalog_region(lang: str, region: str, peaks: list, page: int, pages: int) -
     return InlineKeyboardMarkup(inline_keyboard=[*rows, [_btn(loc["btn_m_catalog_back"], MCb(a="cat"))]])
 
 
-def peak(lang: str, p, can_publish: bool = False) -> InlineKeyboardMarkup:
+def peak(
+    lang: str, p, can_publish: bool = False, subscribed: bool = False, share_url: str | None = None,
+) -> InlineKeyboardMarkup:
     """Вершина из каталога — только просмотр; своя — ещё правка, удаление и публикация."""
     loc = locales.get(lang)
+    bottom = [_btn(loc["btn_m_offline"], MCb(a="offline", id=p.id))]
+    if share_url:
+        bottom.append(InlineKeyboardButton(text=loc["btn_m_share"], url=share_url))
     rows = [
         [_btn(loc["btn_refresh"], MCb(a="refresh", id=p.id))],
         [_btn(loc["btn_m_profile"], MCb(a="profile", id=p.id)),
          _btn(loc["btn_m_hourly"], MCb(a="hourly", id=p.id))],
-        [_btn(loc["btn_m_outlook"], MCb(a="outlook", id=p.id))],
+        [_btn(loc["btn_m_outlook"], MCb(a="outlook", id=p.id)), _btn(loc["btn_m_gear"], GearCb(id=p.id))],
         [_btn(loc["btn_m_route"], MCb(a="route", id=p.id))],
-        [_btn(loc["btn_m_offline"], MCb(a="offline", id=p.id))],
+        bottom,
+        [_btn(loc["btn_m_unsub" if subscribed else "btn_m_sub"], MCb(a="sub", id=p.id))],
     ]
     if p.public:
         region = p.region if p.region in REGIONS else "community"
@@ -302,10 +322,56 @@ def peak_back(lang: str, peak_id: int) -> InlineKeyboardMarkup:
 
 
 def peak_route(lang: str, peak_id: int) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
     return InlineKeyboardMarkup(inline_keyboard=[
-        [_btn(locales.get(lang)["btn_m_profile"], MCb(a="profile", id=peak_id))],
+        [_btn(loc["btn_m_profile"], MCb(a="profile", id=peak_id)), _btn(loc["btn_sos"], MCb(a="sos", id=peak_id))],
         _to_peak(lang, peak_id),
     ])
+
+
+def gear(lang: str, peak_id: int, days: list[str], day: int, items: list, mask: int) -> InlineKeyboardMarkup:
+    """Дни сверху, под ними вещи по две в ряд: нажатие отмечает вещь собранной."""
+    day_row = [
+        _btn(f"• {label} •" if i == day else label, GearCb(id=peak_id, d=i, c=mask))
+        for i, label in enumerate(days)
+    ]
+    loc = locales.get(lang)
+    buttons = [
+        _btn(f"{'✅' if mask & item.bit else '⬜'} {loc['g_' + item.key]}", GearCb(id=peak_id, d=day, c=mask ^ item.bit))
+        for item in items
+    ]
+    rows = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]
+    return InlineKeyboardMarkup(inline_keyboard=[day_row, *rows, _to_peak(lang, peak_id)])
+
+
+def _peak_buttons(entries: list, limit: int = 8) -> list[list[InlineKeyboardButton]]:
+    return [[_btn(f"⛰ {e.peak.name}", MCb(a="open", id=e.peak.id))] for e in entries[:limit]]
+
+
+def weekend(lang: str, entries: list) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[*_peak_buttons(entries), _to_list(lang)])
+
+
+def digest(lang: str, entries: list) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    return InlineKeyboardMarkup(inline_keyboard=[
+        *_peak_buttons(entries),
+        [_btn(loc["btn_m_weekend"], MCb(a="weekend"))],
+        [_btn(loc["btn_mountains"], MCb(a="list"))],
+    ])
+
+
+def changes(lang: str, peaks: list) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    rows = [[_btn(f"⛰ {p.name}", MCb(a="open", id=p.id))] for p in peaks[:8]]
+    return InlineKeyboardMarkup(inline_keyboard=[*rows, [_btn(loc["btn_mountains"], MCb(a="list"))]])
+
+
+def sos(lang: str, peak_id: int = 0, share_url: str | None = None) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    rows = [[InlineKeyboardButton(text=loc["btn_sos_share"], url=share_url)]] if share_url else []
+    back = _to_peak(lang, peak_id) if peak_id else _to_list(lang)
+    return InlineKeyboardMarkup(inline_keyboard=[*rows, back])
 
 
 def peak_delete(lang: str, peak_id: int) -> InlineKeyboardMarkup:

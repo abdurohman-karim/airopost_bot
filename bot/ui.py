@@ -111,8 +111,8 @@ async def enter_location_mode(
         await state.update_data(**data)
         return
     await leave_location_mode(bot, state, chat_id)
-    # На маршруте точку обновляют много раз — там кнопка не прячется после нажатия
-    keyboard = kb.location_reply(lang, one_time=mode != Form.peak_route)
+    # На маршруте и в SOS точку обновляют много раз — там кнопка не прячется после нажатия
+    keyboard = kb.location_reply(lang, one_time=mode not in (Form.peak_route, Form.sos))
     message = await bot.send_message(chat_id, hint or texts.location_keyboard_hint(lang), reply_markup=keyboard)
     await state.set_state(mode)
     await state.update_data(prompt_id=message.message_id, **data)

@@ -2,28 +2,32 @@
 from __future__ import annotations
 
 import math
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from html import escape
 
 from bot import locales
 from bot.catalog import REGIONS
+from bot.coords import to_dms
 from bot.db import Peak
+from bot.gear import Checklist, Item
+from bot.links import map_url
 from bot.locales import Locale
 from bot.services.mountain import (
     CAUTION_CAPE, CAUTION_WIND, STORM_CAPE, Conditions, DayOutlook, Here, MountainForecast,
-    PeakResult, distance_km, route_bands, summit_bands,
+    PeakResult, distance_km, route_bands, route_plan, summit_bands, summit_uv,
 )
 from bot.texts import day_label, direction, duration, hm, t, weather
+from bot.weekend import Entry
 
 RATING_ICON = {"good": "✅", "caution": "⚠️", "bad": "❌"}
 PHASE_ICON = {"snow": "❄️", "sleet": "🌨", "rain": "🌧"}
-UV_PER_KM = 0.08          # УФ растёт примерно на 8 % на каждый километр высоты
 PROFILE_STEPS = 24        # профиль на 72 часа вперёд с шагом 3 часа
 HOURS_PER_PAGE = 12
 CATALOG_PER_PAGE = 8
 HOURLY_PAGES = 6
 ROUTE_AHEAD = 6           # часов вперёд для предупреждений на маршруте
 COLD_WARNING = -20
+PLAN_MAX_KM = 25          # дальше — человек ещё не на маршруте, время в пути не считаем
 
 
 def _ele(loc: Locale, value: float) -> str:
@@ -157,6 +161,8 @@ def _day_line(loc: Locale, o: DayOutlook, today) -> str:
     text = f"{RATING_ICON[o.rating]} <b>{day_label(loc, o.day, today)}</b> — {loc['m_' + o.rating]}"
     if o.reasons:
         text += f": {_reasons(loc, o.reasons)}"
+    if o.best:
+        text += " · " + loc("m_best", span=_hours_span(*o.best))
     return text
 
 
@@ -207,7 +213,7 @@ def _sun_and_uv(loc: Locale, fc: MountainForecast) -> list[str]:
     lines = []
     uv = today.get("uv_index_max")
     if uv is not None and uv >= 3:
-        lines.append(loc("m_uv", uv=round(uv * (1 + UV_PER_KM * fc.elevation / 1000))))
+        lines.append(loc("m_uv", uv=round(summit_uv(uv, fc.elevation))))
     if today.get("sunrise") and today.get("sunset"):
         lines.append(loc("m_sun", rise=hm(today["sunrise"]), set=hm(today["sunset"])))
     return lines
@@ -241,6 +247,16 @@ def _profile_rows(
     if not fl_done:
         lines.append(loc("m_fl_row", h=round(fl)))
     return lines
+
+
+def _approx(loc: Locale, span: timedelta) -> str:
+    """Оценка времени в пути — с точностью до 10 минут."""
+    minutes = max(10, round(span.total_seconds() / 600) * 10)
+    return duration(loc, minutes * 60)
+
+
+def _hours_span(start: datetime, end: datetime) -> str:
+    return f"{start:%H}–{end:%H}"
 
 
 def _updated(loc: Locale, fc: MountainForecast) -> str:
@@ -390,13 +406,22 @@ def route(lang: str, p: Peak, fc: MountainForecast, here: Here) -> str:
     climb = p.ele - here.elevation
 
     lines = [loc("m_route_title", name=escape(p.name))]
+    km = distance_km(here.lat, here.lon, p.lat, p.lon)
     if climb > 50:
-        km = distance_km(here.lat, here.lon, p.lat, p.lon)
         lines.append(loc("m_route_you", ele=round(here.elevation), km=loc.num(km, 1), climb=f"+{round(climb)}"))
     else:
         lines.append(loc("m_route_top", ele=round(here.elevation)))
 
     today = fc.day(now.date())
+    sunset = today.get("sunset") if today else None
+    plan = route_plan(now, km, climb, sunset) if climb > 50 and km <= PLAN_MAX_KM else None
+    if plan:
+        lines += [
+            loc("m_plan_up", d=_approx(loc, plan.up), at=hm(plan.summit_at)),
+            loc("m_plan_down", d=_approx(loc, plan.down), at=hm(plan.back_at)),
+        ]
+        if plan.latest_summit and not plan.turnaround and plan.latest_summit > now:
+            lines.append(loc("m_plan_latest", time=hm(plan.latest_summit)))
     if today and today.get("sunrise") and today.get("sunset"):
         if today["sunrise"] <= now < today["sunset"]:
             left = duration(loc, (today["sunset"] - now).total_seconds())
@@ -429,12 +454,20 @@ def route(lang: str, p: Peak, fc: MountainForecast, here: Here) -> str:
         lines += ["", loc["m_next_hours"], " · ".join(cells[:2]), " · ".join(cells[2:4])]
 
     warnings = _warnings(loc, fc, now)
+    if plan and plan.turnaround:
+        warnings.insert(0, loc("w_turnaround", time=hm(plan.turnaround)))
+    if plan:
+        storm = next((h["time"] for h in fc.upcoming(now) if fc.thunder(h) and h["time"] < plan.back_at), None)
+        if storm and storm < plan.summit_at:
+            warnings.append(loc("w_storm_before", time=hm(storm), at=hm(plan.summit_at)))
     lines.append("")
     if warnings:
         lines += [loc["m_warnings"], *(f"• {w}" for w in warnings)]
     else:
         lines.append(loc["m_all_good"])
     lines += ["", _updated(loc, fc)]
+    if plan:
+        lines.append(loc["m_plan_note"])
     return "\n".join(lines)
 
 
@@ -465,3 +498,154 @@ def offline(lang: str, p: Peak, fc: MountainForecast) -> str:
         lines.append(_hour_row(loc, fc, h))
     lines += ["", loc["m_windows"], *(_day_line(loc, o, today) for o in fc.outlook()[:5])]
     return "\n".join(lines)
+
+
+# ── что взять ───────────────────────────────────────────────────────────────
+
+GEAR_DAYS = 4
+
+
+def gear_day_label(loc: Locale, d: date, today: date) -> str:
+    if d == today:
+        return loc["today"]
+    if (d - today).days == 1:
+        return loc["tomorrow"]
+    return f"{loc['weekdays'][d.weekday()]} {d.day}"
+
+
+def _gear_reason(loc: Locale, item: Item) -> str:
+    params = item.params
+    if item.reason == "gr_feels":
+        return loc("gr_feels", t=t(params["t"]))
+    if item.reason == "gr_precip":
+        return loc("gr_precip", phase=_phase(loc, params["phase"]) or loc["m_rain"], mm=loc.num(params["mm"], 1))
+    return loc(item.reason, **params) if params else loc[item.reason]
+
+
+def _gear_note(loc: Locale, key: str, params: dict) -> str:
+    if key == "gn_best":
+        return loc("gn_best", span=_hours_span(params["start"], params["end"]))
+    return loc(key, **params) if params else loc[key]
+
+
+def gear(lang: str, p: Peak, fc: MountainForecast, o: DayOutlook, checklist: Checklist, mask: int) -> str:
+    loc = locales.get(lang)
+    today = fc.local_now().date()
+    lines = [
+        loc("m_gear_title", name=escape(p.name)),
+        f"<b>{day_label(loc, o.day, today)}</b> · {RATING_ICON[o.rating]} {loc['m_' + o.rating]}",
+        loc("m_gear_summary", tmin=t(o.t_min), tmax=t(o.t_max), feels=t(o.feels_min), wind=loc.num(o.wind_max)),
+    ]
+    if checklist.snow_cm >= 1:
+        lines.append(loc("m_gear_snow", cm=checklist.snow_cm))
+    lines.append("")
+    for item in checklist.items:
+        text = f"{'✅' if mask & item.bit else '⬜'} {loc['g_' + item.key]}"
+        if item.reason:
+            text += f" — {_gear_reason(loc, item)}"
+        lines.append(text)
+    if checklist.notes:
+        lines += ["", *(_gear_note(loc, key, params) for key, params in checklist.notes)]
+    packed = sum(1 for item in checklist.items if mask & item.bit)
+    lines += ["", loc("m_gear_note", n=packed, total=len(checklist.items))]
+    return "\n".join(lines)
+
+
+# ── выходные ────────────────────────────────────────────────────────────────
+
+def _weekend_cell(loc: Locale, o: DayOutlook) -> str:
+    text = f"{loc['weekdays'][o.day.weekday()]} {RATING_ICON[o.rating]}"
+    if o.rating != "good" and o.reasons:
+        text += " " + _reasons(loc, o.reasons[:1])
+    elif o.best:
+        text += " " + loc("m_best", span=_hours_span(*o.best))
+    return text
+
+
+def _weekend_lines(loc: Locale, entries: list[Entry]) -> list[str]:
+    lines = []
+    for e in entries:
+        lines += [
+            f"{RATING_ICON[e.best.rating]} <b>{escape(e.peak.name)}</b> · {_ele(loc, e.peak.ele)}",
+            "└ " + " · ".join(_weekend_cell(loc, o) for o in e.days),
+        ]
+    return lines
+
+
+def _weekend_title(loc: Locale, days: list[date]) -> str:
+    return loc("m_weekend_title", days=" — ".join(loc.date(d) for d in days))
+
+
+def weekend(lang: str, entries: list[Entry], days: list[date]) -> str:
+    loc = locales.get(lang)
+    lines = [_weekend_title(loc, days), loc["m_weekend_intro"], ""]
+    lines += _weekend_lines(loc, entries) if entries else [loc["m_weekend_empty"]]
+    return "\n".join(lines)
+
+
+def weekend_loading(lang: str) -> str:
+    return locales.get(lang)["m_weekend_loading"]
+
+
+def digest(lang: str, entries: list[Entry], days: list[date]) -> str:
+    """Рассылка по четвергам: прогноз на выходные для вершин, на которые подписан пользователь."""
+    loc = locales.get(lang)
+    lines = [loc("m_digest_header", days=" — ".join(loc.date(d) for d in days)), ""]
+    lines += _weekend_lines(loc, entries)
+    lines += ["", loc["m_digest_note"]]
+    return "\n".join(lines)
+
+
+def changes(lang: str, items: list[tuple[Peak, DayOutlook]], today: date) -> str:
+    """Оценка дня на выходных заметно поменялась с прошлого сообщения."""
+    loc = locales.get(lang)
+    lines = [loc["m_change_header"], ""]
+    lines += [f"⛰ <b>{escape(p.name)}</b>\n{_day_line(loc, o, today)}" for p, o in items]
+    return "\n".join(lines)
+
+
+# ── SOS ─────────────────────────────────────────────────────────────────────
+
+def _ago(loc: Locale, minutes: int) -> str:
+    if minutes < 2:
+        return loc["sos_now"]
+    if minutes < 60:
+        return loc("sos_min_ago", n=minutes)
+    return loc("sos_h_ago", h=minutes // 60, m=minutes % 60)
+
+
+def sos(
+    lang: str, lat: float | None, lon: float | None, ele: float | None = None,
+    minutes_ago: int | None = None, place: str | None = None,
+) -> str:
+    loc = locales.get(lang)
+    lines = [loc["sos_title"], "", loc["sos_numbers"], ""]
+    if lat is None or lon is None:
+        lines += [loc["sos_no_point"], "", loc["coords_hint"]]
+    else:
+        lines += [
+            loc("sos_point", when=_ago(loc, minutes_ago or 0)),
+            f"<code>{lat:.5f}, {lon:.5f}</code>",
+            f"<code>{to_dms(lat, lon)}</code>",
+        ]
+        if ele is not None:
+            lines.append(loc("sos_ele", ele=round(ele)))
+        if place:
+            lines.append(loc("sos_place", place=escape(place)))
+        lines.append(loc("sos_map", url=map_url(lat, lon)))
+    lines += ["", loc["sos_tell"], "", loc["sos_wait"]]
+    return "\n".join(lines)
+
+
+def sos_hint(lang: str) -> str:
+    return locales.get(lang)["sos_hint"]
+
+
+def sos_share_text(lang: str, lat: float, lon: float, ele: float | None) -> str:
+    loc = locales.get(lang)
+    text = loc("sos_share", lat=f"{lat:.5f}", lon=f"{lon:.5f}")
+    return text + (loc("sos_share_ele", ele=round(ele)) if ele is not None else "")
+
+
+def share_text(lang: str, p: Peak) -> str:
+    return locales.get(lang)("m_share_text", name=p.name, ele=p.ele)

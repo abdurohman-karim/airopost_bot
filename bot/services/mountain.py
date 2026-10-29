@@ -10,7 +10,7 @@ from __future__ import annotations
 import math
 import re
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from bot.services.models import WeatherError, get_tz, rows
 from bot.services.weather import FORECAST_URL, FRESH_TTL, GEO_TTL, WEATHER_TTL, WeatherService
@@ -36,6 +36,8 @@ PEAK_TYPES = {"peak", "volcano", "saddle", "ridge", "hill", "mountain_range", "r
 
 LAPSE_RATE = 6.5 / 1000   # °C на метр — для экстраполяции ниже самого нижнего уровня
 IN_CLOUD_RH = 95          # при такой влажности на высоте вершина в облаке/тумане
+UV_PER_KM = 0.08          # УФ растёт примерно на 8 % на каждый километр высоты
+PAST_DAYS = 3             # прошедшие дни в прогнозе — чтобы знать, сколько недавно выпало снега
 
 # Пороги оценки дня для восхождения (дневные часы на вершине)
 DAY_HOURS = range(6, 19)
@@ -45,6 +47,17 @@ CAUTION_PROB = 50                         # %
 CAUTION_FEELS = -25                       # °C, ощущаемая
 STORM_CAPE, CAUTION_CAPE = 1000, 500      # Дж/кг
 CAUTION_CLOUD_HOURS = 6
+BEST_MIN_HOURS = 2                        # короче — не окно, а случайный час
+
+# Время в пути по горной тропе (правило Нейсмита, поправленное на горные тропы с рюкзаком)
+TRAIL_FACTOR = 1.3                        # тропа длиннее прямой на карте
+UP_KMH, UP_MH = 4.0, 400                  # подъём: км/ч по горизонтали + метров набора в час
+DOWN_KMH, DOWN_MH = 5.0, 800              # спуск
+
+
+def summit_uv(uv: float, ele: float) -> float:
+    """УФ-индекс модели с поправкой на высоту."""
+    return uv * (1 + UV_PER_KM * ele / 1000)
 
 
 def wind_chill(temp: float, wind_ms: float) -> float:
@@ -113,6 +126,35 @@ def route_bands(low: float, high: float, count: int = 4) -> list[int]:
     return [round(high), *middle, round(low)]
 
 
+def hike_hours(km: float, climb: float) -> tuple[float, float]:
+    """Ориентировочное время подъёма и спуска в часах, без привалов: (вверх, вниз)."""
+    trail, climb = km * TRAIL_FACTOR, max(climb, 0)
+    return trail / UP_KMH + climb / UP_MH, trail / DOWN_KMH + climb / DOWN_MH
+
+
+@dataclass
+class RoutePlan:
+    """Расчёт времени от точки на маршруте до вершины и обратно в эту точку."""
+    up: timedelta
+    down: timedelta
+    summit_at: datetime                 # на вершине, если идти сейчас
+    back_at: datetime                   # обратно в этой точке
+    latest_summit: datetime | None      # позже — спуск уже после заката
+    turnaround: datetime | None         # не успеть до заката: когда разворачиваться, где бы вы ни были
+
+
+def route_plan(now: datetime, km: float, climb: float, sunset: datetime | None) -> RoutePlan:
+    up_h, down_h = hike_hours(km, climb)
+    up, down = timedelta(hours=up_h), timedelta(hours=down_h)
+    plan = RoutePlan(up=up, down=down, summit_at=now + up, back_at=now + up + down, latest_summit=None, turnaround=None)
+    if sunset and sunset > now:
+        plan.latest_summit = sunset - down
+        if plan.back_at > sunset:
+            # Через τ часов пути спуск займёт down·τ/up — разворачиваться, пока τ·(1 + down/up) ≤ до заката
+            plan.turnaround = now + (sunset - now) / (1 + down_h / up_h)
+    return plan
+
+
 @dataclass
 class Conditions:
     """Условия на заданной высоте в конкретный час."""
@@ -140,10 +182,13 @@ class DayOutlook:
     feels_min: float | None
     wind_max: float | None
     precip: float
+    prob_max: int | None
     phase: str | None
     fl_min: float | None
     fl_max: float | None
     thunder: bool
+    best: tuple[datetime, datetime] | None = None   # самые спокойные часы на вершине: [начало, конец)
+    uv_max: float | None = None
 
 
 @dataclass
@@ -219,6 +264,15 @@ class MountainForecast:
     def summit(self, row: dict) -> Conditions:
         return self.at(row, self.elevation)
 
+    def recent_snow(self, hours: int = PAST_DAYS * 24) -> float:
+        """Снег и мокрый снег на вершине за последние часы, мм воды (≈ см свежего снега)."""
+        now = self.local_now()
+        start = now - timedelta(hours=hours)
+        return sum(
+            c.precip for c in (self.summit(h) for h in self.hourly if start <= h["time"] < now)
+            if c.phase in ("snow", "sleet")
+        )
+
     @staticmethod
     def thunder(row: dict) -> bool:
         return (row.get("weather_code") or 0) >= 95 or (
@@ -253,9 +307,11 @@ class MountainForecast:
 
             bad, caution = [], []
             if thunder:
-                bad.append(("r_thunder", {}))
+                first = next(h for h in hours if self.thunder(h))
+                bad.append(("r_thunder", {"time": first["time"].strftime("%H:%M")}))
             elif max(capes, default=0) >= CAUTION_CAPE:
-                caution.append(("r_storm_risk", {}))
+                first = next(h for h in hours if (h.get("cape") or 0) >= CAUTION_CAPE)
+                caution.append(("r_storm_risk", {"time": first["time"].strftime("%H:%M")}))
             if wind_max is not None and wind_max >= BAD_WIND:
                 bad.append(("r_wind", {"v": round(wind_max)}))
             elif wind_max is not None and wind_max >= CAUTION_WIND:
@@ -280,12 +336,37 @@ class MountainForecast:
                 feels_min=feels_min,
                 wind_max=wind_max,
                 precip=precip,
+                prob_max=max(probs, default=None),
                 phase=phase,
                 fl_min=min(fls, default=None),
                 fl_max=max(fls, default=None),
                 thunder=thunder,
+                best=self._best_hours(hours, cond),
+                uv_max=(self.day(d) or {}).get("uv_index_max"),
             ))
         return result
+
+    def _best_hours(self, hours: list[dict], cond: list[Conditions]) -> tuple[datetime, datetime] | None:
+        """Самый длинный отрезок спокойных часов: без грозы, осадков, облака и сильного ветра."""
+        best, start = None, None
+        for i, (h, c) in enumerate(zip(hours, cond)):
+            calm = (
+                not self.thunder(h) and (h.get("cape") or 0) < CAUTION_CAPE and not c.phase
+                and not c.in_cloud and c.wind is not None and c.wind < CAUTION_WIND
+            )
+            # Отрезок рвётся и на плохом часе, и на пропуске в данных
+            if calm and start is not None and h["time"] - hours[i - 1]["time"] != timedelta(hours=1):
+                start = None
+            if calm:
+                start = i if start is None else start
+                if best is None or i - start > best[1] - best[0]:
+                    best = (start, i)
+            else:
+                start = None
+        # Спокоен весь день — подсказывать нечего; короткий просвет — не окно
+        if best is None or best[1] - best[0] + 1 < BEST_MIN_HOURS or best[1] - best[0] + 1 == len(hours):
+            return None
+        return hours[best[0]]["time"], hours[best[1]]["time"] + timedelta(hours=1)
 
 
 @dataclass
@@ -327,6 +408,7 @@ class MountainService:
             "daily": ",".join(SUMMIT_DAILY),
             "timezone": "auto",
             "forecast_days": "7",
+            "past_days": str(PAST_DAYS),
             "wind_speed_unit": "ms",
         }
         data = await self._http.get_json(FORECAST_URL, params, FRESH_TTL if fresh else WEATHER_TTL)

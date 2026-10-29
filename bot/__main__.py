@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import logging
+from pathlib import Path
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.client.default import DefaultBotProperties
@@ -8,7 +9,7 @@ from aiogram.enums import ChatType, ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import BotCommand
 
-from bot import handlers, locales, scheduler
+from bot import alerts, handlers, links, locales, scheduler
 from bot.catalog import PEAKS
 from bot.config import load_config
 from bot.db import Database
@@ -25,6 +26,7 @@ async def set_commands(bot: Bot) -> None:
             BotCommand(command="location", description=loc["cmd_location"]),
             BotCommand(command="settings", description=loc["cmd_settings"]),
             BotCommand(command="language", description=loc["cmd_language"]),
+            BotCommand(command="sos", description=loc["cmd_sos"]),
         ]
         await bot.set_my_commands(commands, language_code=code)
 
@@ -41,11 +43,15 @@ async def main() -> None:
     await db.seed_catalog(PEAKS)
     weather = WeatherService(iqair_key=config.iqair_key)
     await weather.start()
+    mountains = MountainService(weather)
 
-    bot = Bot(config.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    # Без превью ссылок: карта в SOS и ссылки в заявках не должны раздувать сообщения
+    bot = Bot(config.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML, link_preview_is_disabled=True))
+    links.init((await bot.me()).username)
     storage = MemoryStorage()
     dp = Dispatcher(
-        storage=storage, db=db, weather=weather, mountains=MountainService(weather), admins=config.admin_ids,
+        storage=storage, db=db, weather=weather, mountains=mountains, admins=config.admin_ids,
+        backups=Path(config.db_path).parent / "backups",
     )
     dp.message.filter(F.chat.type == ChatType.PRIVATE)
     dp.message.outer_middleware(UserMiddleware(db))
@@ -57,13 +63,17 @@ async def main() -> None:
     if not config.admin_ids:
         logging.warning("ADMIN_IDS не задан — публикация вершин пользователей в каталог отключена")
 
-    scheduler_task = asyncio.create_task(scheduler.run(bot, db, weather, storage))
+    tasks = [
+        asyncio.create_task(scheduler.run(bot, db, weather, storage)),
+        asyncio.create_task(alerts.run(bot, db, mountains, storage, dp["backups"])),
+    ]
     try:
         await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
     finally:
-        scheduler_task.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            await scheduler_task
+        for task in tasks:
+            task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
         await weather.close()
         await db.close()
 

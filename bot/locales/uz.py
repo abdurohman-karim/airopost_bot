@@ -272,8 +272,8 @@ STRINGS.update({
     "m_good": "qulay",
     "m_caution": "ehtiyotkorlik bilan",
     "m_bad": "tavsiya etilmaydi",
-    "r_thunder": "momaqaldiroq",
-    "r_storm_risk": "momaqaldiroq xavfi",
+    "r_thunder": "momaqaldiroq {time} dan",
+    "r_storm_risk": "momaqaldiroq xavfi {time} dan",
     "r_wind": "shamol {v} m/s gacha",
     "r_precip": "{phase} {mm} mm",
     "r_prob": "yogʻingarchilik {p}%",
@@ -415,4 +415,147 @@ STRINGS.update({
     "t_a_forbidden": "Faqat administrator uchun",
     "t_a_approved": "✅ Eʼlon qilindi",
     "t_a_rejected": "❌ Rad etildi",
+})
+
+
+# ── yoʻl vaqti, nima olish kerak, dam olish kunlari, SOS, havolalar ──
+STRINGS.update({
+    "m_plan_up": "⏱ Koʻtarilish ≈ {d} → choʻqqida ≈ {at}",
+    "m_plan_down": "↩️ Bu yerga tushish ≈ {d} → shu yerda ≈ {at}",
+    "m_plan_latest": "🔙 Quyosh botguncha bu yerga tushish uchun choʻqqidan {time} dan kechiktirmay qayting",
+    "m_plan_note": (
+        "<i>Yoʻl vaqti oʻrtacha surʼat boʻyicha: soatiga 4 km va yuqoriga 400 m, dam olishlarsiz.</i>"
+    ),
+    "w_turnaround": "quyosh botguncha choʻqqiga chiqib qaytishga ulgurmaysiz — {time} dan kechiktirmay ortga qayting",
+    "w_storm_before": "{time} ga momaqaldiroq — choʻqqiga yetib borishingizdan oldin (≈ {at})",
+    "m_best": "🕐 eng yaxshisi {span}",
+
+    "m_gear_title": "🎒 <b>Nima olish kerak</b> · {name}",
+    "m_gear_summary": "Choʻqqida: 🌡 {tmin}…{tmax} (his qilinishi {feels} gacha) · 💨 {wind} m/s gacha",
+    "m_gear_snow": "❄️ Soʻnggi 3 kunda choʻqqiga yoqqan yangi qor: ≈ {cm} sm",
+    "m_gear_note": (
+        "<i>{total} tadan {n} tasi yigʻildi. Narsalarni pastdagi tugmalar bilan belgilang. "
+        "Roʻyxat choʻqqi balandligidagi prognoz boʻyicha tuzilgan.</i>"
+    ),
+    "g_water": "💧 Suv",
+    "g_food": "🍫 Ovqat va yegulik",
+    "g_headlamp": "🔦 Peshona chirogʻi",
+    "g_power": "🔋 Powerbank",
+    "g_firstaid": "🩹 Dori qutisi",
+    "g_glasses": "🕶 Quyosh koʻzoynagi",
+    "g_sunscreen": "🧴 SPF 50 krem",
+    "g_cap": "🧢 Kepka yoki panama",
+    "g_beanie": "🧣 Shapka va baf",
+    "g_gloves": "🧤 Qoʻlqop",
+    "g_fleece": "🧥 Flis",
+    "g_down": "🪶 Pat kurtka",
+    "g_mittens": "🥶 Issiq qoʻlqop va balaklava",
+    "g_windproof": "🌬 Shamol kurtkasi",
+    "g_rain": "☔️ Membrana yoki plashch",
+    "g_drybag": "🎒 Germoqop",
+    "g_crampons": "⛓ Koshka yoki mikroshiplar",
+    "g_poles": "🦯 Trekking tayoqlari",
+    "g_gaiters": "🥾 Getrlar",
+    "g_axe": "⛏ Muz boltasi va kaska",
+    "g_thermos": "♨️ Termos",
+    "gr_water": "kishi boshiga kamida 2 l",
+    "gr_water_hot": "issiq — kishi boshiga kamida 3 l",
+    "gr_headlamp": "quyosh {time} da botadi; yorugʻda qaytishni rejalashtirsangiz ham oling",
+    "gr_power": "oflayn prognozni ham oldindan saqlab qoʻying",
+    "gr_poles": "tushishda tizzalarni asraydi",
+    "gr_feels": "choʻqqida his qilinishi {t} gacha",
+    "gr_wind": "shamol {v} m/s gacha",
+    "gr_precip": "{phase} {mm} mm gacha",
+    "gr_prob": "yogʻingarchilik ehtimoli {p}%",
+    "gr_ice_snow": "choʻqqida sovuq va ≈ {cm} sm yangi qor — yonbagʻirlar muzlashi mumkin",
+    "gr_ice_winter": "qish: nol izotermadan yuqorida qor va muz",
+    "gr_snow": "soʻqmoqda qor",
+    "gr_axe": "3500 m dan yuqorida tik qorli yonbagʻirlar",
+    "gr_uv": "choʻqqida UB {uv} gacha",
+    "gr_glare": "qor koʻzni qamashtiradi — 3–4 toifa kerak",
+    "gr_sun": "yoʻlda quyosh va issiq",
+    "gn_bad": "❌ Bu kun chiqish uchun tavsiya etilmaydi — boshqa sanani tanlagan maʼqul.",
+    "gn_storm": "⛈ Momaqaldiroq {time} dan: erta yoʻlga chiqing va u boshlanguncha qir va choʻqqidan tushing.",
+    "gn_best": "🕐 Choʻqqida eng sokin soatlar: {span}",
+    "gn_altitude": (
+        "🏔 3000 m dan yuqorida togʻ kasalligi boʻlishi mumkin: balandlikni shoshilmasdan oling va koʻproq "
+        "suv iching. Kuchli bosh ogʻrigʻi, koʻngil aynishi, tinch holatda nafas qisishi — darhol pastga tushing."
+    ),
+    "btn_m_gear": "🎒 Nima olish kerak",
+
+    "btn_m_weekend": "🗓 Dam olish kunlari qayerga",
+    "m_weekend_title": "🗓 <b>Dam olish kunlari qayerga</b> · {days}",
+    "m_weekend_intro": (
+        "<i>Katalogdagi va sizning choʻqqilaringiz — eng yaxshilari tepada. "
+        "Baho choʻqqi balandligida kunduzgi 06–18 soatlar boʻyicha.</i>"
+    ),
+    "m_weekend_empty": "😕 Choʻqqilar uchun prognoz hozircha mavjud emas. Bir-ikki daqiqadan soʻng urinib koʻring.",
+    "m_weekend_loading": "🔎 Choʻqqilardagi ob-havo hisoblanmoqda…",
+    "m_digest_header": "🔔 <b>Dam olish kunlari uchun prognoz</b> · {days}",
+    "m_digest_note": (
+        "<i>Prognoz sezilarli oʻzgarsa, xabar beraman. Obunani bekor qilish — choʻqqi sahifasidagi 🔕 tugmasi.</i>"
+    ),
+    "m_change_header": "🔔 <b>Dam olish kunlari prognozi oʻzgardi</b>",
+    "btn_m_sub": "🔔 Dam olish kunlari prognozini yuborish",
+    "btn_m_unsub": "🔕 Dam olish kunlari prognozini yubormaslik",
+    "t_m_sub": (
+        "🔔 Tayyor! Bu choʻqqi uchun dam olish kunlari prognozi payshanba kechqurun keladi, "
+        "sezilarli oʻzgarsa — yana yozaman."
+    ),
+    "t_m_unsub": "🔕 Dam olish kunlari prognozi endi kelmaydi",
+    "t_m_sub_limit": "Koʻpi bilan {n} ta choʻqqiga obuna boʻlish mumkin — keraksizidan obunani bekor qiling.",
+
+    "btn_m_share": "📤 Ulashish",
+    "m_share_text": "⛰ {name} · {ele} m — choʻqqidagi ob-havo, chiqish uchun qulay kunlar va balandlik profili",
+    "t_m_shared_added": "⛰ Choʻqqi havola orqali qoʻshildi — endi u sizning roʻyxatingizda",
+
+    "btn_sos": "🆘 SOS va koordinatalar",
+    "btn_sos_share": "📤 Koordinatalarni yuborish",
+    "sos_title": "🆘 <b>Favqulodda yordam</b>",
+    "sos_numbers": (
+        "📞 <b>112</b> — favqulodda xizmatlarning yagona raqami\n"
+        "🇺🇿 Oʻzbekiston: <b>101</b> — FVV yongʻin va qutqaruv xizmati · <b>103</b> — tez yordam · "
+        "<b>102</b> — politsiya"
+    ),
+    "sos_no_point": (
+        "📍 Aniq koordinatalar hali yoʻq. Pastdagi tugma orqali joylashuvni yuboring — "
+        "ularni qutqaruvchilar uchun qulay shaklda koʻrsataman."
+    ),
+    "sos_point": "📍 <b>Sizning koordinatalaringiz</b> · {when}",
+    "sos_now": "hozirgina",
+    "sos_min_ago": "{n} daqiqa oldin",
+    "sos_h_ago": "{h} soat {m} daqiqa oldin",
+    "sos_ele": "⛰ Balandlik ≈ {ele} m",
+    "sos_place": "🏘 Yaqinida: {place}",
+    "sos_map": "🗺 <a href=\"{url}\">Xaritada ochish</a>",
+    "sos_tell": (
+        "<b>Qutqaruvchilarga nima deyish kerak</b>\n"
+        "1. Qayerdasiz — koordinatalarni ayting\n"
+        "2. Nima boʻldi va nechta jabrlanuvchi bor\n"
+        "3. Necha kishisiz, issiq kiyim, suv va chiroq bormi\n"
+        "4. Telefon raqamingiz — telefonni yoqiq tuting"
+    ),
+    "sos_wait": (
+        "<b>Yordamni kutayotganda</b>\n"
+        "• Joy xavfsiz boʻlsa, uni tark etmang — sizni tezroq topishadi\n"
+        "• Isining, shamoldan panalaning, birga turing\n"
+        "• Quvvatni tejang: yorqinlikni minimumga tushiring, keraksizini oʻchiring\n"
+        "• Kechasi chiroq bilan, kunduzi yorqin kiyim bilan signal bering"
+    ),
+    "sos_hint": "⌨️ Kiritish maydoni ostidagi «Joylashuvni yuborish» tugmasi koordinatalarni yangilaydi 👇",
+    "sos_share": "🆘 Mening koordinatalarim: {lat}, {lon}",
+    "sos_share_ele": ", balandlik ≈ {ele} m",
+    "cmd_sos": "🆘 SOS: koordinatalar va favqulodda raqamlar",
+
+    "a_stats": (
+        "📊 <b>Statistika</b>\n\n"
+        "👥 Foydalanuvchilar: <b>{users}</b> (7 kunda +{new_7d})\n"
+        "🟢 Faol: sutkada {active_1d} · 7 kunda {active_7d} · 30 kunda {active_30d}\n"
+        "📍 Joy tanlagan: {with_place} · 🔔 xulosa oladi: {notify}\n"
+        "🌐 Tillar: ru {lang_ru} · uz {lang_uz} · en {lang_en}\n\n"
+        "⛰ Shaxsiy choʻqqilar: {peaks} ({peak_owners} kishida)\n"
+        "🏔 Katalogda: {catalog}, shundan foydalanuvchilardan {community} · ⏳ tekshiruvda: {pending}\n"
+        "🔔 Dam olish prognoziga obunalar: {subs} ({subscribers} kishida)\n"
+        "🧗 Sutkada yoʻlda boʻlganlar: {on_route_1d}"
+    ),
 })

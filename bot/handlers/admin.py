@@ -1,13 +1,16 @@
 """Модерация: админ одобряет или отклоняет вершины, которые пользователи предлагают в общий каталог."""
 import logging
+import sqlite3
+from datetime import datetime
 from html import escape
+from pathlib import Path
 
 from aiogram import Bot, Router
 from aiogram.exceptions import TelegramAPIError
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.base import BaseStorage, StorageKey
-from aiogram.types import CallbackQuery, LinkPreviewOptions, Message, User as TgUser
+from aiogram.types import CallbackQuery, FSInputFile, LinkPreviewOptions, Message, User as TgUser
 
 from bot import keyboards as kb
 from bot import locales, ui
@@ -123,3 +126,29 @@ async def cmd_pending(message: Message, bot: Bot, db: Database, admins: frozense
 
 def tg_author(user: TgUser) -> str:
     return author_html(user.id, user.full_name, user.username)
+
+
+@router.message(Command("stats"))
+async def cmd_stats(message: Message, bot: Bot, db: Database, admins: frozenset[int]) -> None:
+    """Для админа: сколько пользователей, кто активен, чем пользуются."""
+    await ui.delete_incoming(message)
+    if message.from_user.id not in admins:
+        return
+    lang = (await db.get_user(message.from_user.id)).lang
+    await ui.send_fresh(bot, db, message.chat.id, locales.get(lang)("a_stats", **await db.stats()), kb.home_only(lang))
+
+
+@router.message(Command("backup"))
+async def cmd_backup(message: Message, bot: Bot, db: Database, admins: frozenset[int], backups: Path) -> None:
+    """Для админа: свежая копия базы файлом в чат — чтобы хранить её не только на сервере."""
+    await ui.delete_incoming(message)
+    if message.from_user.id not in admins:
+        return
+    path = backups / f"manual-{datetime.now():%Y-%m-%d-%H%M%S}.db"
+    try:
+        await db.backup(path)
+        await bot.send_document(message.chat.id, FSInputFile(path, filename=f"airopost-{path.stem[7:]}.db"))
+    except (OSError, sqlite3.Error, TelegramAPIError) as e:
+        log.warning("Не удалось отправить копию базы: %s", e)
+    finally:
+        path.unlink(missing_ok=True)

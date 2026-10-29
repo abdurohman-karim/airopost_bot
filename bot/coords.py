@@ -72,3 +72,13 @@ def parse_coords(text: str) -> tuple[float, float] | None:
     if not (-90 <= lat <= 90 and -180 <= lon <= 180) or (lat == 0 and lon == 0):
         return None
     return round(lat, 6), round(lon, 6)
+
+
+def to_dms(lat: float, lon: float) -> str:
+    """41.49519, 70.058671 → 41°29'42.7"N 70°03'31.1"E — так координаты удобнее диктовать."""
+    def part(value: float, positive: str, negative: str, width: int) -> str:
+        total = round(abs(value) * 36000)              # десятые доли секунды
+        deg, rest = divmod(total, 36000)
+        minutes, tenths = divmod(rest, 600)
+        return f"{deg:0{width}d}°{minutes:02d}'{tenths / 10:04.1f}\"{positive if value >= 0 else negative}"
+    return f"{part(lat, 'N', 'S', 2)} {part(lon, 'E', 'W', 2)}"

@@ -269,8 +269,8 @@ STRINGS.update({
     "m_good": "good window",
     "m_caution": "use caution",
     "m_bad": "not recommended",
-    "r_thunder": "thunderstorm",
-    "r_storm_risk": "storm risk",
+    "r_thunder": "thunderstorm from {time}",
+    "r_storm_risk": "storm risk from {time}",
     "r_wind": "wind up to {v} m/s",
     "r_precip": "{phase} {mm} mm",
     "r_prob": "{p}% precipitation",
@@ -412,4 +412,143 @@ STRINGS.update({
     "t_a_forbidden": "Admins only",
     "t_a_approved": "✅ Published",
     "t_a_rejected": "❌ Rejected",
+})
+
+
+# ── route timing, what to pack, weekend, SOS, links ──
+STRINGS.update({
+    "m_plan_up": "⏱ Ascent ≈ {d} → at the summit ≈ {at}",
+    "m_plan_down": "↩️ Descent back here ≈ {d} → here ≈ {at}",
+    "m_plan_latest": "🔙 To get back here before sunset, leave the summit by {time}",
+    "m_plan_note": "<i>Travel time at an average pace: 4 km/h and 400 m of ascent per hour, no breaks.</i>",
+    "w_turnaround": "not enough daylight to summit and return — turn around by {time}",
+    "w_storm_before": "thunderstorm by {time} — before you reach the summit (≈ {at})",
+    "m_best": "🕐 best {span}",
+
+    "m_gear_title": "🎒 <b>What to pack</b> · {name}",
+    "m_gear_summary": "At the summit: 🌡 {tmin}…{tmax} (feels like down to {feels}) · 💨 up to {wind} m/s",
+    "m_gear_snow": "❄️ Fresh snow on the summit over the last 3 days: ≈ {cm} cm",
+    "m_gear_note": (
+        "<i>Packed {n} of {total}. Tick items with the buttons below. "
+        "The list is based on the forecast at summit height.</i>"
+    ),
+    "g_water": "💧 Water",
+    "g_food": "🍫 Food and snacks",
+    "g_headlamp": "🔦 Headlamp",
+    "g_power": "🔋 Power bank",
+    "g_firstaid": "🩹 First aid kit",
+    "g_glasses": "🕶 Sunglasses",
+    "g_sunscreen": "🧴 SPF 50 sunscreen",
+    "g_cap": "🧢 Cap or sun hat",
+    "g_beanie": "🧣 Beanie and buff",
+    "g_gloves": "🧤 Gloves",
+    "g_fleece": "🧥 Fleece",
+    "g_down": "🪶 Down jacket",
+    "g_mittens": "🥶 Mittens and balaclava",
+    "g_windproof": "🌬 Windbreaker",
+    "g_rain": "☔️ Rain shell",
+    "g_drybag": "🎒 Dry bag",
+    "g_crampons": "⛓ Crampons or microspikes",
+    "g_poles": "🦯 Trekking poles",
+    "g_gaiters": "🥾 Gaiters",
+    "g_axe": "⛏ Ice axe and helmet",
+    "g_thermos": "♨️ Thermos",
+    "gr_water": "at least 2 L per person",
+    "gr_water_hot": "hot — at least 3 L per person",
+    "gr_headlamp": "sunset at {time}; bring it even if you plan to be back in daylight",
+    "gr_power": "and save the offline forecast in advance",
+    "gr_poles": "they save your knees on the descent",
+    "gr_feels": "feels like down to {t} at the summit",
+    "gr_wind": "wind up to {v} m/s",
+    "gr_precip": "{phase} up to {mm} mm",
+    "gr_prob": "{p}% chance of precipitation",
+    "gr_ice_snow": "frost and ≈ {cm} cm of fresh snow at the summit — slopes may be icy",
+    "gr_ice_winter": "winter: snow and ice above the freezing level",
+    "gr_snow": "snow on the trail",
+    "gr_axe": "steep snow slopes above 3500 m",
+    "gr_uv": "UV up to {uv} at the summit",
+    "gr_glare": "snow glare — category 3–4 lenses",
+    "gr_sun": "sun and heat on the approach",
+    "gn_bad": "❌ Not a recommended day for a climb — better pick another date.",
+    "gn_storm": "⛈ Thunderstorm from {time}: start early and get off the ridge and summit before it begins.",
+    "gn_best": "🕐 Calmest hours at the summit: {span}",
+    "gn_altitude": (
+        "🏔 Altitude sickness is possible above 3000 m: gain height slowly and drink more. "
+        "Severe headache, nausea, breathlessness at rest — go down immediately."
+    ),
+    "btn_m_gear": "🎒 What to pack",
+
+    "btn_m_weekend": "🗓 Where to go this weekend",
+    "m_weekend_title": "🗓 <b>Where to go this weekend</b> · {days}",
+    "m_weekend_intro": (
+        "<i>Catalog peaks and yours — best first. Rated by daytime hours 06–18 at summit height.</i>"
+    ),
+    "m_weekend_empty": "😕 The forecast for peaks is unavailable right now. Try again in a couple of minutes.",
+    "m_weekend_loading": "🔎 Checking the weather on the peaks…",
+    "m_digest_header": "🔔 <b>Weekend forecast</b> · {days}",
+    "m_digest_note": (
+        "<i>I'll let you know if the forecast changes noticeably. To unsubscribe, tap 🔕 on the peak page.</i>"
+    ),
+    "m_change_header": "🔔 <b>The weekend forecast has changed</b>",
+    "btn_m_sub": "🔔 Send me the weekend forecast",
+    "btn_m_unsub": "🔕 Stop the weekend forecast",
+    "t_m_sub": (
+        "🔔 Done! The weekend forecast for this peak will arrive on Thursday evening, "
+        "and I'll write again if it changes noticeably."
+    ),
+    "t_m_unsub": "🔕 You won't get the weekend forecast for this peak anymore",
+    "t_m_sub_limit": "You can follow up to {n} peaks — unsubscribe from one first.",
+
+    "btn_m_share": "📤 Share",
+    "m_share_text": "⛰ {name} · {ele} m — summit weather, climbing windows and altitude profile",
+    "t_m_shared_added": "⛰ Peak added from the link — it's now in your peaks",
+
+    "btn_sos": "🆘 SOS and coordinates",
+    "btn_sos_share": "📤 Send coordinates",
+    "sos_title": "🆘 <b>Emergency help</b>",
+    "sos_numbers": (
+        "📞 <b>112</b> — single emergency number\n"
+        "🇺🇿 Uzbekistan: <b>101</b> — fire and rescue · <b>103</b> — ambulance · <b>102</b> — police"
+    ),
+    "sos_no_point": (
+        "📍 No exact coordinates yet. Send your location with the button below — "
+        "I'll show them in the formats rescuers use."
+    ),
+    "sos_point": "📍 <b>Your coordinates</b> · {when}",
+    "sos_now": "just now",
+    "sos_min_ago": "{n} min ago",
+    "sos_h_ago": "{h} h {m} min ago",
+    "sos_ele": "⛰ Elevation ≈ {ele} m",
+    "sos_place": "🏘 Near: {place}",
+    "sos_map": "🗺 <a href=\"{url}\">Open on the map</a>",
+    "sos_tell": (
+        "<b>What to tell rescuers</b>\n"
+        "1. Where you are — read out the coordinates\n"
+        "2. What happened and how many are injured\n"
+        "3. How many of you there are, and whether you have warm clothes, water and light\n"
+        "4. Your phone number — keep the phone on"
+    ),
+    "sos_wait": (
+        "<b>While you wait</b>\n"
+        "• Stay where you are if it's safe — you'll be found faster\n"
+        "• Keep warm, shelter from the wind, stay together\n"
+        "• Save battery: minimum brightness, turn off what you don't need\n"
+        "• Signal with a light at night and with bright clothing by day"
+    ),
+    "sos_hint": "⌨️ The «Send my location» button below the input field updates the coordinates 👇",
+    "sos_share": "🆘 My coordinates: {lat}, {lon}",
+    "sos_share_ele": ", elevation ≈ {ele} m",
+    "cmd_sos": "🆘 SOS: coordinates and emergency numbers",
+
+    "a_stats": (
+        "📊 <b>Statistics</b>\n\n"
+        "👥 Users: <b>{users}</b> (+{new_7d} in 7 days)\n"
+        "🟢 Active: {active_1d} in a day · {active_7d} in 7 days · {active_30d} in 30 days\n"
+        "📍 With a place: {with_place} · 🔔 get the daily summary: {notify}\n"
+        "🌐 Languages: ru {lang_ru} · uz {lang_uz} · en {lang_en}\n\n"
+        "⛰ Private peaks: {peaks} of {peak_owners} users\n"
+        "🏔 In the catalog: {catalog}, from users {community} · ⏳ pending: {pending}\n"
+        "🔔 Weekend forecast subscriptions: {subs} of {subscribers} users\n"
+        "🧗 On a route in the last day: {on_route_1d}"
+    ),
 })
