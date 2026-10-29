@@ -70,6 +70,12 @@ class SpotCb(CallbackData, prefix="sp"):
     k: str = ""     # ключ перевала или курорта из bot.catalog
 
 
+class RouteCb(CallbackData, prefix="rt"):
+    a: str          # list | open | go | del
+    id: int = 0     # трек
+    s: str = ""     # вариант старта из bot.gpx.start_options
+
+
 class PeakPickCb(CallbackData, prefix="mp"):
     idx: int
 
@@ -225,6 +231,7 @@ def mountains(lang: str, peaks: list, can_add: bool, catalog_count: int = 0, tri
     if can_add:
         rows.append([_btn(loc["btn_m_add"], MCb(a="add"))])
     rows.append([_btn(loc["btn_ski"], SpotCb(a="ski")), _btn(loc["btn_passes"], SpotCb(a="passes"))])
+    rows.append([_btn(loc["btn_routes"], RouteCb(a="list"))])
     rows.append([_btn(loc["btn_sos"], MCb(a="sos"))])
     return InlineKeyboardMarkup(inline_keyboard=[*rows, _back(lang)])
 
@@ -484,4 +491,30 @@ def resort(lang: str, key: str, subscribed: bool) -> InlineKeyboardMarkup:
         [_btn(loc["btn_refresh"], SpotCb(a="resort", k=key))],
         [_btn(loc["btn_ski_unsub" if subscribed else "btn_ski_sub"], SpotCb(a="skisub", k=key))],
         [_btn(loc["btn_ski_back"], SpotCb(a="ski"))],
+    ])
+
+
+# ── GPX-треки ───────────────────────────────────────────────────────────────
+
+def routes(lang: str, items: list[tuple[int, str]]) -> InlineKeyboardMarkup:
+    rows = [[_btn(f"🗺 {name}", RouteCb(a="open", id=rid))] for rid, name in items]
+    return InlineKeyboardMarkup(inline_keyboard=[*rows, _to_list(lang)])
+
+
+def route_start(lang: str, route_id: int, options: list[tuple[str, str]]) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    buttons = [_btn(label, RouteCb(a="go", id=route_id, s=code)) for code, label in options]
+    rows = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]
+    return InlineKeyboardMarkup(inline_keyboard=[
+        *rows,
+        [_btn(loc["btn_route_del"], RouteCb(a="del", id=route_id))],
+        [_btn(loc["btn_routes_back"], RouteCb(a="list"))],
+    ])
+
+
+def route_plan(lang: str, route_id: int) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [_btn(loc["btn_route_other_start"], RouteCb(a="open", id=route_id))],
+        [_btn(loc["btn_routes_back"], RouteCb(a="list"))],
     ])

@@ -71,6 +71,16 @@ CREATE TABLE IF NOT EXISTS trips (
 );
 CREATE INDEX IF NOT EXISTS trips_active ON trips (status, deadline);
 
+-- GPX-треки пользователей: точки [широта, долгота, высота] в JSON
+CREATE TABLE IF NOT EXISTS routes (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL,
+    name       TEXT    NOT NULL,
+    points     TEXT    NOT NULL,
+    created_at TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS routes_user ON routes (user_id);
+
 -- Оповещения о свежем снеге на горнолыжных курортах
 CREATE TABLE IF NOT EXISTS ski_subs (
     user_id    INTEGER NOT NULL,
@@ -193,6 +203,7 @@ class Peak:
 MAX_PEAKS = 10
 MAX_SUBS = 5
 MAX_CONTACTS = 5
+MAX_ROUTES = 5
 
 
 @dataclass
@@ -455,6 +466,38 @@ class Database:
             "SELECT * FROM trips WHERE status = 'active' AND deadline <= ? AND alerted = 0", (now,)
         ) as cur:
             return [Trip.from_row(row) for row in await cur.fetchall()]
+
+    # ── GPX-треки ──
+
+    async def add_route(self, user_id: int, name: str, points: list) -> int:
+        cur = await self.conn.execute(
+            "INSERT INTO routes (user_id, name, points) VALUES (?, ?, ?)", (user_id, name[:64], json.dumps(points)),
+        )
+        # Храним только последние MAX_ROUTES треков
+        await self.conn.execute(
+            "DELETE FROM routes WHERE user_id = ? AND id NOT IN "
+            "(SELECT id FROM routes WHERE user_id = ? ORDER BY id DESC LIMIT ?)",
+            (user_id, user_id, MAX_ROUTES),
+        )
+        await self.conn.commit()
+        return cur.lastrowid
+
+    async def routes(self, user_id: int) -> list[tuple[int, str]]:
+        async with self.conn.execute(
+            "SELECT id, name FROM routes WHERE user_id = ? ORDER BY id DESC", (user_id,)
+        ) as cur:
+            return [(row[0], row[1]) for row in await cur.fetchall()]
+
+    async def route(self, user_id: int, route_id: int) -> tuple[str, list] | None:
+        async with self.conn.execute(
+            "SELECT name, points FROM routes WHERE user_id = ? AND id = ?", (user_id, route_id)
+        ) as cur:
+            row = await cur.fetchone()
+        return (row[0], json.loads(row[1])) if row else None
+
+    async def delete_route(self, user_id: int, route_id: int) -> None:
+        await self.conn.execute("DELETE FROM routes WHERE user_id = ? AND id = ?", (user_id, route_id))
+        await self.conn.commit()
 
     # ── свежий снег на курортах ──
 

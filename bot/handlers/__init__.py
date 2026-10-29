@@ -1,6 +1,6 @@
 from aiogram import Router
 
-from bot.handlers import admin, commands, fallback, location, mountains, navigation, schedule, spots, trips
+from bot.handlers import admin, commands, fallback, location, mountains, navigation, routes, schedule, spots, trips
 
 
 def routers() -> list[Router]:
@@ -8,5 +8,5 @@ def routers() -> list[Router]:
     # fallback — последним: он удаляет всё, что не обработали остальные.
     return [
         commands.router, admin.router, navigation.router, schedule.router,
-        spots.router, trips.router, mountains.router, location.router, fallback.router,
+        routes.router, spots.router, trips.router, mountains.router, location.router, fallback.router,
     ]
