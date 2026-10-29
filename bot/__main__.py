@@ -65,7 +65,7 @@ async def main() -> None:
 
     tasks = [
         asyncio.create_task(scheduler.run(bot, db, weather, storage)),
-        asyncio.create_task(alerts.run(bot, db, mountains, storage, dp["backups"])),
+        asyncio.create_task(alerts.run(bot, db, weather, mountains, storage, dp["backups"])),
         asyncio.create_task(alerts.run_trips(bot, db)),
     ]
     try:

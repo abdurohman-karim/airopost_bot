@@ -76,6 +76,12 @@ class RouteCb(CallbackData, prefix="rt"):
     s: str = ""     # вариант старта из bot.gpx.start_options
 
 
+class PlCb(CallbackData, prefix="pl"):
+    a: str          # list | go | del | save | add | trip | tdest | tlen | tset | tcancel
+    id: int = 0     # место
+    d: int = 0      # поездка: сдвиг первого дня от сегодня; для tset — сдвиг·100 + число дней
+
+
 class PeakPickCb(CallbackData, prefix="mp"):
     idx: int
 
@@ -97,7 +103,7 @@ def welcome(lang: str) -> InlineKeyboardMarkup:
 def home(lang: str) -> InlineKeyboardMarkup:
     loc = locales.get(lang)
     return InlineKeyboardMarkup(inline_keyboard=[
-        [_btn(loc["btn_refresh"], Nav(to="home", fresh=True))],
+        [_btn(loc["btn_refresh"], Nav(to="home", fresh=True)), _btn(loc["btn_places"], PlCb(a="list"))],
         [_btn(loc["btn_hourly"], Nav(to="hourly")), _btn(loc["btn_daily"], Nav(to="daily"))],
         [_btn(loc["btn_air"], Nav(to="air")), _btn(loc["btn_mountains"], MCb(a="list"))],
         [_btn(loc["btn_passes"], SpotCb(a="passes")), _btn(loc["btn_settings"], Nav(to="settings"))],
@@ -137,6 +143,7 @@ def settings(user: User) -> InlineKeyboardMarkup:
     loc = locales.get(user.lang)
     return InlineKeyboardMarkup(inline_keyboard=[
         [_btn(loc["btn_change_place"] if user.has_location else loc["btn_pick_place"], Nav(to="location"))],
+        [_btn(loc["btn_places"], PlCb(a="list"))],
         [_btn(loc("btn_time", time=user.notify_time), Nav(to="time"))],
         [_btn(loc["btn_notify_off"] if user.notify_enabled else loc["btn_notify_on"], Nav(to="toggle"))],
         [_btn(loc["btn_lang"], Nav(to="lang"))],
@@ -518,3 +525,44 @@ def route_plan(lang: str, route_id: int) -> InlineKeyboardMarkup:
         [_btn(loc["btn_route_other_start"], RouteCb(a="open", id=route_id))],
         [_btn(loc["btn_routes_back"], RouteCb(a="list"))],
     ])
+
+
+# ── избранные места и поездки ───────────────────────────────────────────────
+
+def places(lang: str, items: list, can_save: bool, can_add: bool, trip: bool) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    rows = [[_btn(f"📍 {p.name}", PlCb(a="go", id=p.id)), _btn("🗑", PlCb(a="del", id=p.id))] for p in items]
+    if can_save:
+        rows.append([_btn(loc["btn_pl_save"], PlCb(a="save"))])
+    if can_add:
+        rows.append([_btn(loc["btn_pl_add"], PlCb(a="add"))])
+    trip_row = [_btn(loc["btn_pl_trip_cancel"], PlCb(a="tcancel"))] if trip else [_btn(loc["btn_pl_trip"], PlCb(a="trip"))]
+    return InlineKeyboardMarkup(inline_keyboard=[*rows, trip_row, _back(lang, "settings")])
+
+
+def _to_places(lang: str) -> list[InlineKeyboardButton]:
+    return [_btn(locales.get(lang)["btn_pl_back"], PlCb(a="list"))]
+
+
+def places_back(lang: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[_to_places(lang)])
+
+
+def trip_dest(lang: str, items: list) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    rows = [[_btn(f"✈️ {p.name}", PlCb(a="tdest", id=p.id))] for p in items]
+    rows.append([_btn(loc["btn_pl_add"], PlCb(a="add"))])
+    return InlineKeyboardMarkup(inline_keyboard=[*rows, _to_places(lang)])
+
+
+def trip_from(lang: str, place_id: int, labels: list[str]) -> InlineKeyboardMarkup:
+    buttons = [_btn(label, PlCb(a="tlen", id=place_id, d=i)) for i, label in enumerate(labels)]
+    rows = [buttons[i:i + 4] for i in range(0, len(buttons), 4)]
+    return InlineKeyboardMarkup(inline_keyboard=[*rows, _to_places(lang)])
+
+
+def trip_len(lang: str, place_id: int, offset: int) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    buttons = [_btn(loc("pl_days", n=n), PlCb(a="tset", id=place_id, d=offset * 100 + n))
+               for n in (1, 2, 3, 4, 5, 7, 10, 14)]
+    return InlineKeyboardMarkup(inline_keyboard=[buttons[:4], buttons[4:], _to_places(lang)])

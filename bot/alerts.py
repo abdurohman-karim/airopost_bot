@@ -22,12 +22,15 @@ from aiogram.fsm.storage.base import BaseStorage, StorageKey
 
 from bot import keyboards as kb
 from bot import mountain_texts as mt
+from bot import place_texts as pt
+from bot import screens
 from bot import spot_texts as st
 from bot import timeutil, ui, weekend
 from bot import trip_texts as tt
 from bot.catalog import RESORTS
 from bot.db import Database, Peak, User
-from bot.services import MountainService, WeatherError
+from bot.handlers.places import switch_home
+from bot.services import MountainService, WeatherError, WeatherService
 from bot.services.mountain import DayOutlook
 from bot.states import Form
 
@@ -86,7 +89,9 @@ async def watch_trips(bot: Bot, db: Database) -> None:
                 pass
 
 
-async def run(bot: Bot, db: Database, mountains: MountainService, storage: BaseStorage, backups: Path) -> None:
+async def run(
+    bot: Bot, db: Database, weather: WeatherService, mountains: MountainService, storage: BaseStorage, backups: Path,
+) -> None:
     log.info("Прогноз на выходные и резервные копии запущены")
     while True:
         try:
@@ -101,6 +106,10 @@ async def run(bot: Bot, db: Database, mountains: MountainService, storage: BaseS
             await powder(bot, db, mountains, storage)
         except Exception:
             log.exception("Ошибка оповещений о свежем снеге")
+        try:
+            await travel(bot, db, weather)
+        except Exception:
+            log.exception("Ошибка переключения сводки на поездку")
         await asyncio.sleep(CHECK_SECONDS)
 
 
@@ -256,3 +265,43 @@ async def powder(bot: Bot, db: Database, mountains: MountainService, storage: Ba
             log.warning("Оповещение о снеге для %s не отправлено: %s", user.user_id, e)
             continue
         await db.ski_alerted(user.user_id, resort.key, now.date().isoformat())
+
+
+TRAVEL_FROM_HOUR = 6          # сводку переключаем утром, а не в полночь — и сообщаем об этом не ночью
+
+
+async def travel(bot: Bot, db: Database, weather: WeatherService) -> None:
+    """Поездка: в первый день сводка переключается на место назначения, после последнего — обратно домой."""
+    for user in await db.travellers():
+        dest = await db.saved_place(user.user_id, user.trip_place)
+        clear = {"trip_place": None, "trip_from": None, "trip_to": None, "trip_home": None, "trip_on": 0}
+        if not dest:
+            await db.update(user.user_id, **clear)
+            continue
+        now = timeutil.local_now(dest.tz)
+        if now.hour < TRAVEL_FROM_HOUR:
+            continue
+        today, header = now.date().isoformat(), None
+        if not user.trip_on and user.trip_from <= today <= user.trip_to:
+            home = None
+            if user.has_location:
+                home = await db.add_place(user.user_id, user.place or "🏠", user.lat, user.lon, user.tz, force=True)
+            user = await db.update(user.user_id, trip_on=1, trip_home=home.id if home else None)
+            user = await switch_home(db, user, dest)
+            header = pt.trip_started(user.lang, dest, user)
+        elif today > user.trip_to:
+            home = await db.saved_place(user.user_id, user.trip_home) if user.trip_on else None
+            was_on = user.trip_on
+            user = await db.update(user.user_id, **clear)
+            if not was_on:
+                continue           # поездка так и не началась (бот был выключен) — просто забываем её
+            if home:
+                user = await switch_home(db, user, home)
+            header = pt.trip_ended(user.lang, home)
+        if not header:
+            continue
+        text, markup = await screens.build("home", user, weather, header=header)
+        try:
+            await ui.send_fresh(bot, db, user.user_id, text, markup)
+        except TelegramAPIError as e:
+            log.info("Сообщение о поездке для %s не доставлено: %s", user.user_id, e)

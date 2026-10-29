@@ -29,6 +29,11 @@ CREATE TABLE IF NOT EXISTS users (
     route_at       TEXT,             -- UTC, ISO
     invite_token   TEXT,             -- ссылка-приглашение в доверенные контакты
     name           TEXT,             -- имя в Telegram — для приглашений и тревоги контактам
+    trip_place     INTEGER,          -- поездка: место из places, куда переключить сводку
+    trip_from      TEXT,             -- первый и последний день поездки, YYYY-MM-DD (местные для места)
+    trip_to        TEXT,
+    trip_home      INTEGER,          -- место, куда вернуть сводку после поездки
+    trip_on        INTEGER NOT NULL DEFAULT 0,   -- 1 — поездка идёт, сводка уже переключена
     created_at     TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -70,6 +75,18 @@ CREATE TABLE IF NOT EXISTS trips (
     alerted    INTEGER NOT NULL DEFAULT 0           -- сообщили доверенным контактам
 );
 CREATE INDEX IF NOT EXISTS trips_active ON trips (status, deadline);
+
+-- Избранные места: быстрое переключение местности и поездки
+CREATE TABLE IF NOT EXISTS places (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL,
+    name       TEXT    NOT NULL,
+    lat        REAL    NOT NULL,
+    lon        REAL    NOT NULL,
+    tz         TEXT,
+    created_at TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS places_user ON places (user_id);
 
 -- GPX-треки пользователей: точки [широта, долгота, высота] в JSON
 CREATE TABLE IF NOT EXISTS routes (
@@ -122,6 +139,7 @@ CREATE INDEX IF NOT EXISTS catalog_status ON catalog (status);
 COLUMNS = {
     "lat", "lon", "place", "tz", "notify_time", "notify_enabled", "last_sent", "menu_msg_id", "lang",
     "digest_week", "route_lat", "route_lon", "route_ele", "route_at",
+    "trip_place", "trip_from", "trip_to", "trip_home", "trip_on",
 }
 
 # Колонки, добавленные после первой версии: (таблица, имя, тип) — для обновления старых баз
@@ -130,7 +148,8 @@ MIGRATIONS = [
     ("users", "last_seen", "TEXT"), ("users", "digest_week", "TEXT"),
     ("users", "route_lat", "REAL"), ("users", "route_lon", "REAL"), ("users", "route_ele", "REAL"),
     ("users", "route_at", "TEXT"), ("peaks", "share_token", "TEXT"), ("users", "invite_token", "TEXT"),
-    ("users", "name", "TEXT"),
+    ("users", "name", "TEXT"), ("users", "trip_place", "INTEGER"), ("users", "trip_from", "TEXT"),
+    ("users", "trip_to", "TEXT"), ("users", "trip_home", "INTEGER"), ("users", "trip_on", "INTEGER NOT NULL DEFAULT 0"),
 ]
 
 
@@ -152,6 +171,11 @@ class User:
     route_lon: float | None = None
     route_ele: float | None = None
     route_at: str | None = None
+    trip_place: int | None = None
+    trip_from: str | None = None
+    trip_to: str | None = None
+    trip_home: int | None = None
+    trip_on: bool = False
 
     @property
     def has_location(self) -> bool:
@@ -176,6 +200,11 @@ class User:
             route_lon=row["route_lon"],
             route_ele=row["route_ele"],
             route_at=row["route_at"],
+            trip_place=row["trip_place"],
+            trip_from=row["trip_from"],
+            trip_to=row["trip_to"],
+            trip_home=row["trip_home"],
+            trip_on=bool(row["trip_on"]),
         )
 
 
@@ -204,6 +233,17 @@ MAX_PEAKS = 10
 MAX_SUBS = 5
 MAX_CONTACTS = 5
 MAX_ROUTES = 5
+MAX_PLACES = 8
+SAME_CITY = 0.01          # ~1 км — то же место
+
+
+@dataclass
+class SavedPlace:
+    id: int
+    name: str
+    lat: float
+    lon: float
+    tz: str | None
 
 
 @dataclass
@@ -466,6 +506,52 @@ class Database:
             "SELECT * FROM trips WHERE status = 'active' AND deadline <= ? AND alerted = 0", (now,)
         ) as cur:
             return [Trip.from_row(row) for row in await cur.fetchall()]
+
+    # ── избранные места ──
+
+    async def places(self, user_id: int) -> list[SavedPlace]:
+        async with self.conn.execute(
+            "SELECT id, name, lat, lon, tz FROM places WHERE user_id = ? ORDER BY id", (user_id,)
+        ) as cur:
+            return [SavedPlace(*row) for row in await cur.fetchall()]
+
+    async def saved_place(self, user_id: int, place_id: int | None) -> SavedPlace | None:
+        return next((p for p in await self.places(user_id) if p.id == place_id), None)
+
+    @staticmethod
+    def same(place: SavedPlace, lat: float, lon: float) -> bool:
+        return abs(place.lat - lat) < SAME_CITY and abs(place.lon - lon) < SAME_CITY
+
+    async def add_place(
+        self, user_id: int, name: str, lat: float, lon: float, tz: str | None, force: bool = False,
+    ) -> SavedPlace | None:
+        """Добавить место; то же место (~1 км) не дублируется. None — достигнут предел MAX_PLACES
+        (force — сверх предела: дом на время поездки нельзя потерять)."""
+        places = await self.places(user_id)
+        existing = next((p for p in places if self.same(p, lat, lon)), None)
+        if existing:
+            return existing
+        if len(places) >= MAX_PLACES and not force:
+            return None
+        cur = await self.conn.execute(
+            "INSERT INTO places (user_id, name, lat, lon, tz) VALUES (?, ?, ?, ?, ?)",
+            (user_id, name[:64], lat, lon, tz),
+        )
+        await self.conn.commit()
+        return SavedPlace(cur.lastrowid, name[:64], lat, lon, tz)
+
+    async def delete_place(self, user_id: int, place_id: int) -> None:
+        await self.conn.execute("DELETE FROM places WHERE user_id = ? AND id = ?", (user_id, place_id))
+        await self.conn.execute(
+            "UPDATE users SET trip_place = NULL, trip_from = NULL, trip_to = NULL "
+            "WHERE user_id = ? AND trip_place = ? AND trip_on = 0",
+            (user_id, place_id),
+        )
+        await self.conn.commit()
+
+    async def travellers(self) -> list[User]:
+        async with self.conn.execute("SELECT * FROM users WHERE trip_place IS NOT NULL") as cur:
+            return [User.from_row(row) for row in await cur.fetchall()]
 
     # ── GPX-треки ──
 
