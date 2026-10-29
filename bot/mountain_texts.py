@@ -206,6 +206,24 @@ def _summit_now(loc: Locale, fc: MountainForecast, row: dict) -> list[str]:
     return lines
 
 
+AV_ICONS = ("⚪️", "🟡", "🟠", "🔴")
+
+
+def snow_lines(loc: Locale, fc: MountainForecast) -> list[str]:
+    """Свежий снег и признаки лавинной опасности — только когда снег есть или ожидается."""
+    s = fc.snow()
+    if s.recent < 1 and s.coming < 1:
+        return []
+    lines = [loc("av_snow", recent=round(s.recent)) + (loc("av_snow_coming", coming=round(s.coming)) if s.coming >= 1 else "")]
+    if s.level:
+        reasons = ", ".join(loc[r] for r in s.reasons)
+        lines += [
+            loc("av_level", icon=AV_ICONS[s.level], level=loc["av_levels"][s.level - 1], reasons=reasons),
+            loc["av_note"],
+        ]
+    return lines
+
+
 def _sun_and_uv(loc: Locale, fc: MountainForecast) -> list[str]:
     today = fc.day(fc.local_now().date())
     if not today:
@@ -272,6 +290,7 @@ def peak(lang: str, p: Peak, fc: MountainForecast, header: str | None = None) ->
     lines = [header, ""] if header else []
     lines += [peak_header(loc, p), f"📍 {p.lat:.4f}, {p.lon:.4f}", status_line(lang, p), ""]
     lines += _summit_now(loc, fc, fc.hour())
+    lines += snow_lines(loc, fc)
     lines += _sun_and_uv(loc, fc)
     outlook = fc.outlook()[:3]
     if outlook:
@@ -483,6 +502,7 @@ def offline(lang: str, p: Peak, fc: MountainForecast) -> str:
         loc("m_offline_header", name=escape(p.name), ele=p.ele, date=loc.date(now), time=hm(now)),
         "",
         *_summit_now(loc, fc, row),
+        *snow_lines(loc, fc),
         *_sun_and_uv(loc, fc),
         "",
         loc["m_way_up"],

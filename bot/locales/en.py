@@ -641,3 +641,19 @@ STRINGS.update({
     "t_contacts_limit": "This person already has {n} trusted contacts — no more can be added.",
     "t_invite_stale": "The invitation is outdated — ask for a new link.",
 })
+
+# ── снег и лавинная опасность ──
+STRINGS.update({
+    "av_snow": "❄️ Fresh snow on the summit over 3 days: ≈ {recent} cm",
+    "av_snow_coming": ", another ≈ {coming} cm expected in 24 h",
+    "av_level": "{icon} Avalanche danger from the weather: <b>{level}</b> — {reasons}",
+    "av_levels": ["elevated", "high", "very high"],
+    "av_some": "fresh snow",
+    "av_fresh": "lots of fresh snow",
+    "av_lot": "heavy snowfall",
+    "av_wind": "wind during snowfall — wind slabs",
+    "av_warm": "warming above the summit",
+    "av_rain": "rain on fresh snow",
+    "av_note": "<i>This is an estimate from the weather, not an official avalanche forecast. Slopes steeper than 30° are dangerous after snowfall.</i>",
+    "gn_avalanche": "🏔 Avalanche danger: stay on ridges and gentle slopes, avoid gullies; everyone carries avalanche gear.",
+})

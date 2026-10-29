@@ -651,3 +651,19 @@ STRINGS.update({
     "t_contacts_limit": "Bu odamda allaqachon {n} ta ishonchli kontakt bor — ortiq mumkin emas.",
     "t_invite_stale": "Taklif eskirgan — yangi havola soʻrang.",
 })
+
+# ── снег и лавинная опасность ──
+STRINGS.update({
+    "av_snow": "❄️ Soʻnggi 3 kunda choʻqqiga yangi qor: ≈ {recent} sm",
+    "av_snow_coming": ", bir sutkada yana ≈ {coming} sm kutilmoqda",
+    "av_level": "{icon} Ob-havo boʻyicha qor koʻchkisi xavfi: <b>{level}</b> — {reasons}",
+    "av_levels": ["yuqori", "juda yuqori", "oʻta yuqori"],
+    "av_some": "yangi qor",
+    "av_fresh": "koʻp yangi qor",
+    "av_lot": "kuchli qor yogʻishi",
+    "av_wind": "qor yogʻayotganda shamol — qor uyumlari",
+    "av_warm": "choʻqqidan yuqorigacha isish",
+    "av_rain": "yangi qor ustiga yomgʻir",
+    "av_note": "<i>Bu ob-havo boʻyicha baho, rasmiy qor koʻchkisi prognozi emas. Qor yoqqandan keyin 30° dan tik yonbagʻirlar xavfli.</i>",
+    "gn_avalanche": "🏔 Qor koʻchkisi xavfi: qirlar va qiya yonbagʻirlardan yuring, kuluarlarni aylanib oʻting; har kimda qor koʻchkisi jihozlari boʻlsin.",
+})

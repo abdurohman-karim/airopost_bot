@@ -91,4 +91,6 @@ def build(fc: MountainForecast, o: DayOutlook) -> Checklist:
         notes.append(("gn_best", {"start": o.best[0], "end": o.best[1]}))
     if ele >= 3000:
         notes.append(("gn_altitude", {}))
+    if fc.snow().level >= 2:
+        notes.append(("gn_avalanche", {}))
     return Checklist(items=items, notes=notes, snow_cm=round(snow))

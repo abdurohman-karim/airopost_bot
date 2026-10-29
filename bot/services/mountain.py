@@ -49,6 +49,11 @@ STORM_CAPE, CAUTION_CAPE = 1000, 500      # Дж/кг
 CAUTION_CLOUD_HOURS = 6
 BEST_MIN_HOURS = 2                        # короче — не окно, а случайный час
 
+# Снег и признаки лавинной опасности — оценка по погоде, не официальный прогноз
+SNOW_NEXT_HOURS = 24
+LOADING_WIND = 10                         # м/с: ветер при снегопаде переносит снег и набивает доски
+AVALANCHE_LEVELS = (1, 3, 5)              # баллы: повышенная, высокая, очень высокая
+
 # Время в пути по горной тропе (правило Нейсмита, поправленное на горные тропы с рюкзаком)
 TRAIL_FACTOR = 1.3                        # тропа длиннее прямой на карте
 UP_KMH, UP_MH = 4.0, 400                  # подъём: км/ч по горизонтали + метров набора в час
@@ -273,6 +278,34 @@ class MountainForecast:
             if c.phase in ("snow", "sleet")
         )
 
+    def snow(self) -> SnowReport:
+        """Свежий и ожидаемый снег на вершине и признаки лавинной опасности: много свежего снега,
+        ветер во время снегопада (надувы), потепление или дождь по свежему снегу."""
+        now = self.local_now().replace(minute=0, second=0, microsecond=0)
+        past = [h for h in self.hourly if now - timedelta(hours=PAST_DAYS * 24) <= h["time"] < now]
+        ahead = [h for h in self.hourly if now <= h["time"] < now + timedelta(hours=SNOW_NEXT_HOURS)]
+        snowy = lambda rows: [(h, c) for h, c in ((h, self.summit(h)) for h in rows) if c.phase in ("snow", "sleet")]
+        past_snow, next_snow = snowy(past), snowy(ahead)
+        recent = sum(c.precip for _, c in past_snow)
+        coming = sum(c.precip for _, c in next_snow)
+
+        score, reasons = 0, []
+        if recent >= 30 or recent + coming >= 40:
+            score, reasons = score + 3, reasons + ["av_lot"]
+        elif recent >= 15 or recent + coming >= 20:
+            score, reasons = score + 2, reasons + ["av_fresh"]
+        elif recent + coming >= 5:
+            score, reasons = score + 1, reasons + ["av_some"]
+        if any((c.wind or 0) >= LOADING_WIND for _, c in past_snow + next_snow):
+            score, reasons = score + 1, reasons + ["av_wind"]
+        if recent + coming >= 5:
+            if any(self.summit(h).phase == "rain" for h in ahead):
+                score, reasons = score + 2, reasons + ["av_rain"]
+            elif any((h.get("freezing_level_height") or 0) > self.elevation for h in ahead):
+                score, reasons = score + 1, reasons + ["av_warm"]
+        level = sum(score >= limit for limit in AVALANCHE_LEVELS)
+        return SnowReport(recent=recent, coming=coming, level=level, reasons=reasons)
+
     @staticmethod
     def thunder(row: dict) -> bool:
         return (row.get("weather_code") or 0) >= 95 or (
@@ -367,6 +400,14 @@ class MountainForecast:
         if best is None or best[1] - best[0] + 1 < BEST_MIN_HOURS or best[1] - best[0] + 1 == len(hours):
             return None
         return hours[best[0]]["time"], hours[best[1]]["time"] + timedelta(hours=1)
+
+
+@dataclass
+class SnowReport:
+    recent: float                    # снег на вершине за 3 дня, мм воды ≈ см
+    coming: float                    # ожидается за сутки
+    level: int                       # 0 — признаков мало, 1–3 — повышенная, высокая, очень высокая
+    reasons: list[str]               # ключи локали
 
 
 @dataclass
