@@ -58,6 +58,13 @@ class GearCb(CallbackData, prefix="mg"):
     c: int = 0      # отмеченные вещи — биты по номерам из bot.gear.ITEMS
 
 
+class TripCb(CallbackData, prefix="tr"):
+    a: str          # open | start | done | extend | cancel | contacts | rm | accept
+    id: int = 0     # вершина; для rm — контакт, для accept — кто приглашает
+    h: int = 0      # часы до срока или продления; для rm — вершина, куда вернуться
+    t: str = ""     # accept: ключ приглашения — без него контакт себе не добавить
+
+
 class PeakPickCb(CallbackData, prefix="mp"):
     idx: int
 
@@ -202,9 +209,11 @@ def _to_list(lang: str) -> list[InlineKeyboardButton]:
     return [_btn(locales.get(lang)["btn_m_back"], MCb(a="list"))]
 
 
-def mountains(lang: str, peaks: list, can_add: bool, catalog_count: int = 0) -> InlineKeyboardMarkup:
+def mountains(lang: str, peaks: list, can_add: bool, catalog_count: int = 0, trip=None) -> InlineKeyboardMarkup:
     loc = locales.get(lang)
-    rows = [[_btn(loc("m_catalog_btn", n=catalog_count), MCb(a="cat"))]] if catalog_count else []
+    rows = [[_btn(loc("btn_trip_active", name=trip.peak_name), TripCb(a="open", id=trip.peak_id))]] if trip else []
+    if catalog_count:
+        rows.append([_btn(loc("m_catalog_btn", n=catalog_count), MCb(a="cat"))])
     if catalog_count or peaks:
         rows.append([_btn(loc["btn_m_weekend"], MCb(a="weekend"))])
     rows += [[_btn(f"⛰ {p.name} · {p.ele} {loc['m']}", MCb(a="open", id=p.id))] for p in peaks]
@@ -266,7 +275,7 @@ def peak(
         [_btn(loc["btn_m_profile"], MCb(a="profile", id=p.id)),
          _btn(loc["btn_m_hourly"], MCb(a="hourly", id=p.id))],
         [_btn(loc["btn_m_outlook"], MCb(a="outlook", id=p.id)), _btn(loc["btn_m_gear"], GearCb(id=p.id))],
-        [_btn(loc["btn_m_route"], MCb(a="route", id=p.id))],
+        [_btn(loc["btn_m_route"], MCb(a="route", id=p.id)), _btn(loc["btn_trip"], TripCb(a="open", id=p.id))],
         bottom,
         [_btn(loc["btn_m_unsub" if subscribed else "btn_m_sub"], MCb(a="sub", id=p.id))],
     ]
@@ -325,7 +334,58 @@ def peak_route(lang: str, peak_id: int) -> InlineKeyboardMarkup:
     loc = locales.get(lang)
     return InlineKeyboardMarkup(inline_keyboard=[
         [_btn(loc["btn_m_profile"], MCb(a="profile", id=peak_id)), _btn(loc["btn_sos"], MCb(a="sos", id=peak_id))],
+        [_btn(loc["btn_trip"], TripCb(a="open", id=peak_id))],
         _to_peak(lang, peak_id),
+    ])
+
+
+# ── контрольный срок ────────────────────────────────────────────────────────
+
+def trip_setup(lang: str, peak_id: int, options: list[tuple[int, str]], contacts: int) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    buttons = [_btn(label, TripCb(a="start", id=peak_id, h=h)) for h, label in options]
+    rows = [buttons[i:i + 3] for i in range(0, len(buttons), 3)]
+    rows.append([_btn(loc("btn_trip_contacts", n=contacts), TripCb(a="contacts", id=peak_id))])
+    return InlineKeyboardMarkup(inline_keyboard=[*rows, _to_peak(lang, peak_id)])
+
+
+def _trip_return_row(lang: str, trip_peak: int) -> list[list[InlineKeyboardButton]]:
+    loc = locales.get(lang)
+    return [
+        [_btn(loc["btn_trip_done"], TripCb(a="done", id=trip_peak))],
+        [_btn(loc("btn_trip_extend", h=h), TripCb(a="extend", id=trip_peak, h=h)) for h in (1, 2)],
+    ]
+
+
+def trip_active(lang: str, peak_id: int) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    return InlineKeyboardMarkup(inline_keyboard=[
+        *_trip_return_row(lang, peak_id),
+        [_btn(loc["btn_m_route"], MCb(a="route", id=peak_id)), _btn(loc["btn_sos"], MCb(a="sos", id=peak_id))],
+        [_btn(loc("btn_trip_contacts_short"), TripCb(a="contacts", id=peak_id)),
+         _btn(loc["btn_trip_cancel"], TripCb(a="cancel", id=peak_id))],
+        _to_peak(lang, peak_id),
+    ])
+
+
+def trip_reminder(lang: str, peak_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=_trip_return_row(lang, peak_id))
+
+
+def contacts(lang: str, people: list[tuple[int, str]], peak_id: int, invite_url: str | None) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    rows = [[_btn(f"❌ {name}", TripCb(a="rm", id=cid, h=peak_id))] for cid, name in people]
+    if invite_url:
+        rows.append([InlineKeyboardButton(text=loc["btn_invite"], url=invite_url)])
+    back = [_btn(loc["btn_back"], TripCb(a="open", id=peak_id))] if peak_id else _to_list(lang)
+    return InlineKeyboardMarkup(inline_keyboard=[*rows, back])
+
+
+def invite(lang: str, owner_id: int, token: str) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [_btn(loc["btn_invite_yes"], TripCb(a="accept", id=owner_id, t=token))],
+        [_btn(loc["btn_invite_no"], Nav(to="home"))],
     ])
 
 

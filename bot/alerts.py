@@ -5,12 +5,14 @@
 * Потом, до самих выходных, бот следит за прогнозом и пишет, если день, о котором уже сообщили,
   стал «не рекомендуется» или, наоборот, из плохого стал хорошим.
 * Раз в сутки бот кладёт копию базы в data/backups и хранит последние BACKUP_KEEP копий.
+* Каждую минуту — контрольные сроки: прошёл срок — напоминание самому, ещё через TRIP_GRACE —
+  тревога доверенным контактам с маршрутом и последней точкой.
 """
 from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from aiogram import Bot
@@ -21,6 +23,7 @@ from aiogram.fsm.storage.base import BaseStorage, StorageKey
 from bot import keyboards as kb
 from bot import mountain_texts as mt
 from bot import timeutil, ui, weekend
+from bot import trip_texts as tt
 from bot.db import Database, Peak, User
 from bot.services import MountainService
 from bot.services.mountain import DayOutlook
@@ -34,6 +37,51 @@ QUIET_FROM, QUIET_TO = 22, 7            # ночью ничего не прис�
 SAME_DAY_UNTIL = 9                      # об изменении на сегодня сообщаем только утром
 BACKUP_KEEP = 14
 BUSY_STATES = {Form.peak_route.state, Form.sos.state}   # человек на маршруте — не перебиваем экран
+TRIP_SECONDS = 60
+TRIP_GRACE = timedelta(minutes=30)      # столько ждём ответа на напоминание, прежде чем поднять тревогу
+
+
+async def run_trips(bot: Bot, db: Database) -> None:
+    log.info("Контроль сроков возвращения запущен")
+    while True:
+        try:
+            await watch_trips(bot, db)
+        except Exception:
+            log.exception("Ошибка контроля сроков")
+        await asyncio.sleep(TRIP_SECONDS)
+
+
+async def watch_trips(bot: Bot, db: Database) -> None:
+    now = timeutil.utc_now()
+    for trip in await db.overdue_trips(timeutil.to_db(now)):
+        owner = await db.get_user(trip.user_id)
+        if not trip.reminded:
+            # Напоминание — новым сообщением, чтобы пришло уведомление. Кнопку геопозиции не трогаем.
+            try:
+                await ui.send_fresh(bot, db, trip.user_id, tt.reminder(owner.lang, trip),
+                                    kb.trip_reminder(owner.lang, trip.peak_id))
+            except TelegramAPIError as e:
+                log.warning("Напоминание о сроке #%s не доставлено: %s", trip.id, e)
+            await db.update_trip(trip.id, reminded=1)
+            continue
+        if now < timeutil.from_db(trip.deadline) + TRIP_GRACE:
+            continue
+        contacts = await db.contacts(trip.user_id)
+        for contact_id, _ in contacts:
+            lang = (await db.get_user(contact_id)).lang
+            try:
+                # Отдельное сообщение, которое бот не удалит и не заменит
+                await bot.send_message(contact_id, tt.alarm(lang, trip, owner))
+            except TelegramAPIError as e:
+                log.warning("Тревога по выходу #%s не доставлена контакту %s: %s", trip.id, contact_id, e)
+        await db.update_trip(trip.id, alerted=1)
+        log.warning("Контрольный срок #%s пропущен — сообщено контактам: %s", trip.id, len(contacts))
+        if contacts:
+            try:
+                await ui.send_fresh(bot, db, trip.user_id, tt.owner_alerted(owner.lang, trip, contacts),
+                                    kb.trip_reminder(owner.lang, trip.peak_id))
+            except TelegramAPIError:
+                pass
 
 
 async def run(bot: Bot, db: Database, mountains: MountainService, storage: BaseStorage, backups: Path) -> None:

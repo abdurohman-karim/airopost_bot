@@ -556,6 +556,98 @@ STRINGS.update({
         "⛰ Shaxsiy choʻqqilar: {peaks} ({peak_owners} kishida)\n"
         "🏔 Katalogda: {catalog}, shundan foydalanuvchilardan {community} · ⏳ tekshiruvda: {pending}\n"
         "🔔 Dam olish prognoziga obunalar: {subs} ({subscribers} kishida)\n"
-        "🧗 Sutkada yoʻlda boʻlganlar: {on_route_1d}"
+        "🧗 Sutkada yoʻlda boʻlganlar: {on_route_1d}\n"
+        "⏱ 7 kunda chiqishlar: {trips_7d} · hozir yoʻlda: {trips_active} · ishonchli kontaktlar: {contacts}"
     ),
+})
+
+
+# ── nazorat muddati va ishonchli kontaktlar ──
+STRINGS.update({
+    "m_live_hint": (
+        "📡 Translyatsiyani yoqish mumkin: 📎 → Joylashuv → <b>«Joylashuvni translyatsiya qilish»</b>. "
+        "Shunda nuqta oʻzi yangilanadi — SOS va nazorat muddati uchun."
+    ),
+    "trip_title": "⏱ <b>Nazorat muddati</b> · {name}",
+    "trip_intro": (
+        "Qachongacha qaytishingizni belgilang. «✅ Qaytdim» tugmasini bosmasangiz — avval sizga eslataman, "
+        "30 daqiqadan soʻng esa ishonchli kontaktlarga qayerga chiqqaningizni va yoʻldagi soʻnggi nuqtani yuboraman."
+    ),
+    "trip_contacts": "👥 Ishonchli kontaktlar: {names}",
+    "trip_no_contacts": "👥 Ishonchli kontaktlar hali yoʻq — ularsiz faqat sizga eslataman. Pastdagi tugma bilan qoʻshing.",
+    "trip_sunset": "🌅 Bugun quyosh {time} da botadi",
+    "trip_pick": "Necha soatdan keyin qaytasiz? 👇\n<i>Yoki qaytish vaqtini yozing, masalan 18:30</i>",
+    "trip_active_title": "⏱ <b>Siz yoʻldasiz</b> · {name}",
+    "trip_started": "🚶 Chiqish {time} da",
+    "trip_deadline": "🏁 <b>{time}</b> gacha qayting · {left} qoldi",
+    "trip_overdue": "⏰ <b>{time}</b> muddati {late} oldin oʻtdi",
+    "trip_no_point": "📍 Yoʻldan nuqta hali yoʻq — «🧗 Men yoʻldaman» boʻlimida joylashuvni yuboring.",
+    "trip_point": "📍 Soʻnggi nuqta: {time} ({ago})",
+    "trip_point_ele": " · ≈ {ele} m",
+    "trip_alerted_note": "🚨 Kontaktlarga xavotir xabari yuborilgan — xavfsiz joyga yetishingiz bilan belgilang.",
+    "trip_live_hint": (
+        "<i>Maslahat: «🧗 Men yoʻldaman» boʻlimida joylashuv translyatsiyasini yoqing — nuqta oʻzi yangilanadi.</i>"
+    ),
+    "trip_reminder": (
+        "⏰ <b>Nazorat muddati oʻtdi</b>\n\n"
+        "«{name}» yoʻnalishidan {time} gacha qaytish rejalashtirilgan edi. Hammasi joyidami?\n\n"
+        "30 daqiqa ichida belgilamasangiz, ishonchli kontaktlarga xavotir xabari boradi."
+    ),
+    "trip_alarm_title": "🚨 <b>Qaytgani haqida belgi yoʻq: {who}</b>",
+    "trip_alarm_body": (
+        "⛰ Yoʻnalish: «{name}» ({ele} m)\n"
+        "🚶 Chiqish: {date}, {start}\n"
+        "🏁 Nazorat muddati: <b>{deadline}</b> — oʻtdi, «Qaytdim» belgisi yoʻq\n"
+        "👤 Profil: {who}"
+    ),
+    "trip_alarm_todo": (
+        "<b>Nima qilish kerak</b>\n"
+        "1. Bogʻlanishga urinib koʻring: {who} ga qoʻngʻiroq qiling yoki yozing.\n"
+        "2. Boʻlmasa — <b>112</b> ga qoʻngʻiroq qilib, yoʻnalish, chiqish vaqti va soʻnggi nuqtani ayting.\n"
+        "Qaytgani belgilanishi bilan xabar beraman."
+    ),
+    "trip_owner_alerted": (
+        "🚨 <b>Nazorat muddati 30 daqiqa oldin oʻtdi</b>\n\n"
+        "Ishonchli kontaktlarga xavotir xabari yuborildi: {names}.\n"
+        "Xavfsiz joyga yetishingiz bilan «✅ Qaytdim» tugmasini bosing — ularga bekor qilish xabari boradi."
+    ),
+    "trip_back_notice": "✅ <b>Xavotir bekor:</b> {who} — «{name}» yoʻnalishidan qaytgani belgilandi, hammasi joyida.",
+    "trip_extended_notice": "🔄 {who} aloqada va nazorat muddatini {time} gacha uzaytirmoqda.",
+    "contacts_title": "👥 <b>Ishonchli kontaktlar</b>",
+    "contacts_intro": (
+        "Agar nazorat muddatigacha yoʻldan qaytmasangiz, ularga qayerga chiqqaningizni va soʻnggi nuqtangizni "
+        "yuboraman. Odamni pastdagi tugma bilan taklif qiling: u Telegram’da havolani ochib, tasdiqlaydi. "
+        "5 tagacha kontakt."
+    ),
+    "contacts_list": "Hozir: {names}\n<i>Kontaktni oʻchirish uchun ismini bosing.</i>",
+    "contacts_empty": "Hozircha hech kim yoʻq.",
+    "invite_text": (
+        "👥 <b>{who}</b> sayohatlarda ishonchli kontakt boʻlishingizni soʻrayapti.\n\n"
+        "Agar {who} nazorat muddatigacha yoʻldan qaytmasa, sizga qayerga chiqilganini va yoʻldagi soʻnggi "
+        "nuqtani yuboraman. Boshqa hech narsa: odatdagi vaqtda joylashuv ham, xabarnomalar ham yoʻq."
+    ),
+    "invite_share": (
+        "Sayohatlarda ishonchli kontaktim boʻl: agar yoʻldan vaqtida qaytmasam, AiroPost boti "
+        "meni qayerdan qidirish kerakligini senga xabar qiladi."
+    ),
+    "invite_done": "✅ Tayyor! Siz {who} uchun ishonchli kontaktsiz. Biror narsa notoʻgʻri ketsa, yozaman.",
+    "invite_own": "🔗 Bu sizning havolangiz — uni doʻstingiz yoki yaqiningizga yuboring.",
+    "contact_added_notice": "👥 {who} endi sizning ishonchli kontaktingiz.",
+    "btn_trip": "⏱ Nazorat muddati",
+    "btn_trip_active": "⏱ Siz yoʻldasiz: {name}",
+    "btn_trip_contacts": "👥 Ishonchli kontaktlar ({n})",
+    "btn_trip_contacts_short": "👥 Kontaktlar",
+    "btn_trip_done": "✅ Qaytdim",
+    "btn_trip_extend": "🔄 +{h} soat",
+    "btn_trip_cancel": "❌ Chiqishni bekor qilish",
+    "btn_invite": "➕ Kontakt taklif qilish",
+    "btn_invite_yes": "✅ Roziman",
+    "btn_invite_no": "Rad etish",
+    "t_trip_started": "⏱ Chiqish belgilandi — {time} gacha qayting",
+    "t_trip_done": "✅ Xush kelibsiz!",
+    "t_trip_extended": "🔄 Muddat {time} gacha uzaytirildi",
+    "t_trip_cancelled": "Chiqish bekor qilindi",
+    "t_contact_removed": "Kontakt oʻchirildi",
+    "t_contacts_limit": "Bu odamda allaqachon {n} ta ishonchli kontakt bor — ortiq mumkin emas.",
+    "t_invite_stale": "Taklif eskirgan — yangi havola soʻrang.",
 })

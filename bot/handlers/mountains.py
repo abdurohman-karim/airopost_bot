@@ -1,8 +1,9 @@
 import asyncio
 import re
-from datetime import datetime, timezone
+import time
 
 from aiogram import Bot, F, Router
+from aiogram.enums import ChatType
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
 
@@ -23,6 +24,14 @@ _ELEVATION_RE = re.compile(r"^\s*(\d{2,4}(?:[.,]\d+)?)\s*(?:m|м|metr|meters?)?\
 SOS_FRESH_HOURS = 12      # точка с маршрута старше — для спасателей уже не годится
 SOS_LOOKUP_SECONDS = 8    # высоту и ближайшее место ждём недолго: координаты важнее
 SAME_PLACE = 0.004        # ~400 м — та же вершина
+LIVE_ROUTE_SECONDS = 10 * 60   # трансляция геопозиции: экран маршрута обновляем не чаще
+LIVE_SOS_SECONDS = 60
+
+
+async def _delete_unless_live(message: Message) -> None:
+    """Сообщение с трансляцией геопозиции не удаляем — иначе трансляция остановится."""
+    if not (message.location and message.location.live_period):
+        await ui.delete_incoming(message)
 
 
 def _message_id(callback: CallbackQuery) -> int | None:
@@ -32,7 +41,18 @@ def _message_id(callback: CallbackQuery) -> int | None:
 async def _list_screen(db: Database, chat_id: int, lang: str) -> tuple[str, InlineKeyboardMarkup]:
     peaks = await db.peaks(chat_id)
     catalog = await db.catalog(lang)
-    return mt.mountains(lang, peaks), kb.mountains(lang, peaks, len(peaks) < MAX_PEAKS, len(catalog))
+    trip = await db.active_trip(chat_id)
+    return mt.mountains(lang, peaks), kb.mountains(lang, peaks, len(peaks) < MAX_PEAKS, len(catalog), trip)
+
+
+list_screen = _list_screen
+
+
+async def peak_screen(
+    db: Database, chat_id: int, lang: str, peak: Peak, mountains: MountainService, admins: frozenset[int],
+    header: str | None = None,
+) -> tuple[str, InlineKeyboardMarkup]:
+    return await _peak_screen(db, chat_id, "open", lang, peak, mountains, admins, header=header)
 
 
 async def _catalog_screen(db: Database, lang: str) -> tuple[str, InlineKeyboardMarkup]:
@@ -482,9 +502,14 @@ async def _route_update(
     message: Message, bot: Bot, state: FSMContext, db: Database, mountains: MountainService, lat: float, lon: float,
 ) -> None:
     """Погода в точке на маршруте, на вершине и на высотах между ними."""
-    chat_id = message.chat.id
+    await _delete_unless_live(message)
+    await _route_refresh(bot, state, db, mountains, message.chat.id, lat, lon)
+
+
+async def _route_refresh(
+    bot: Bot, state: FSMContext, db: Database, mountains: MountainService, chat_id: int, lat: float, lon: float,
+) -> None:
     lang = (await db.get_user(chat_id)).lang
-    await ui.delete_incoming(message)
     await _save_point(db, chat_id, lat, lon)
     peak = await db.resolve_peak(chat_id, (await state.get_data()).get("peak_id") or 0, lang)
     if not peak:
@@ -504,8 +529,7 @@ async def _route_update(
 
 async def _save_point(db: Database, chat_id: int, lat: float, lon: float) -> None:
     """Последняя точка с маршрута — её покажет экран SOS. Время — UTC в формате SQLite."""
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-    await db.update(chat_id, route_lat=lat, route_lon=lon, route_ele=None, route_at=now)
+    await db.update(chat_id, route_lat=lat, route_lon=lon, route_ele=None, route_at=timeutil.to_db(timeutil.utc_now()))
 
 
 # ── SOS ─────────────────────────────────────────────────────────────────────
@@ -514,8 +538,7 @@ def _sos_screen(user: User, peak_id: int, place: str | None = None) -> tuple[str
     lang = user.lang
     minutes = None
     if user.route_at and user.route_lat is not None and user.route_lon is not None:
-        at = datetime.strptime(user.route_at, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
-        minutes = int((datetime.now(timezone.utc) - at).total_seconds() // 60)
+        minutes = int((timeutil.utc_now() - timeutil.from_db(user.route_at)).total_seconds() // 60)
     if minutes is None or minutes > SOS_FRESH_HOURS * 60:
         return mt.sos(lang, None, None), kb.sos(lang, peak_id)
     lat, lon, ele = user.route_lat, user.route_lon, user.route_ele
@@ -579,7 +602,7 @@ async def _sos_update(
     lat: float, lon: float,
 ) -> None:
     chat_id = message.chat.id
-    await ui.delete_incoming(message)
+    await _delete_unless_live(message)
     await _save_point(db, chat_id, lat, lon)
     peak_id = (await state.get_data()).get("peak_id") or 0
     user = await db.get_user(chat_id)
@@ -630,3 +653,34 @@ async def open_link(
     text, markup = await _peak_screen(db, chat_id, "open", lang, peak, mountains, admins, header=header)
     await ui.send_fresh(bot, db, chat_id, text, markup)
     return True
+
+
+
+@router.edited_message(F.location, F.chat.type == ChatType.PRIVATE)
+async def on_live_location(
+    message: Message, bot: Bot, state: FSMContext, db: Database, mountains: MountainService,
+) -> None:
+    """Трансляция геопозиции: Telegram присылает новые точки правкой того же сообщения. Точку запоминаем
+    для SOS и контрольного срока, а экраны обновляем не чаще LIVE_*_SECONDS — без лишних запросов к API."""
+    chat_id = message.chat.id
+    lat, lon = message.location.latitude, message.location.longitude
+    current = await state.get_state()
+    if current not in (Form.peak_route.state, Form.sos.state) and not await db.active_trip(chat_id):
+        return
+    data = await state.get_data()
+    interval = LIVE_ROUTE_SECONDS if current == Form.peak_route.state else LIVE_SOS_SECONDS
+    if current in (Form.peak_route.state, Form.sos.state) and time.time() - data.get("live_at", 0) >= interval:
+        await state.update_data(live_at=time.time())
+        if current == Form.peak_route.state:
+            await _route_refresh(bot, state, db, mountains, chat_id, lat, lon)
+        else:
+            await _save_point(db, chat_id, lat, lon)
+            await ui.show(bot, db, chat_id, *_sos_screen(await db.get_user(chat_id), data.get("peak_id") or 0))
+        return
+    # Высоту не знаем — оставим прежнюю, если точка почти не сдвинулась
+    user = await db.get_user(chat_id)
+    moved = user.route_lat is None or abs(user.route_lat - lat) > 0.002 or abs(user.route_lon - lon) > 0.002
+    await db.update(
+        chat_id, route_lat=lat, route_lon=lon, route_at=timeutil.to_db(timeutil.utc_now()),
+        **({"route_ele": None} if moved else {}),
+    )

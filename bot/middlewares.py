@@ -21,5 +21,5 @@ class UserMiddleware(BaseMiddleware):
     ) -> Any:
         user = data.get("event_from_user")
         if user and not user.is_bot:
-            await self.db.ensure_user(user.id, locales.detect(user.language_code))
+            await self.db.ensure_user(user.id, locales.detect(user.language_code), user.full_name)
         return await handler(event, data)

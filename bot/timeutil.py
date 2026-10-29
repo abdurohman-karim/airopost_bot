@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from bot.db import User
 from bot.services.models import get_tz
@@ -56,3 +56,19 @@ def next_send(user: User) -> datetime | None:
     if user.last_sent != now.date().isoformat() and now < target + CATCH_UP:
         return target
     return target + timedelta(days=1)
+
+
+# Время в базе (выходы, точка с маршрута) — UTC в формате SQLite: так его можно сравнивать прямо в SQL
+DB_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc).replace(microsecond=0)
+
+
+def to_db(dt: datetime) -> str:
+    return dt.astimezone(timezone.utc).strftime(DB_FORMAT)
+
+
+def from_db(value: str) -> datetime:
+    return datetime.strptime(value, DB_FORMAT).replace(tzinfo=timezone.utc)

@@ -359,7 +359,7 @@ def outlook(lang: str, p: Peak, fc: MountainForecast) -> str:
 
 def route_prompt(lang: str, p: Peak) -> str:
     loc = locales.get(lang)
-    return f"{loc('m_route_prompt', name=escape(p.name))}\n\n{loc['coords_hint']}"
+    return f"{loc('m_route_prompt', name=escape(p.name))}\n\n{loc['m_live_hint']}\n\n{loc['coords_hint']}"
 
 
 def route_hint(lang: str) -> str:

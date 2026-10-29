@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS users (
     route_lon      REAL,
     route_ele      REAL,
     route_at       TEXT,             -- UTC, ISO
+    invite_token   TEXT,             -- ссылка-приглашение в доверенные контакты
+    name           TEXT,             -- имя в Telegram — для приглашений и тревоги контактам
     created_at     TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -42,6 +44,32 @@ CREATE TABLE IF NOT EXISTS peaks (
     created_at TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS peaks_user ON peaks (user_id);
+
+-- Доверенные контакты: кому сообщить, если человек не вернулся с маршрута к контрольному сроку
+CREATE TABLE IF NOT EXISTS contacts (
+    user_id    INTEGER NOT NULL,
+    contact_id INTEGER NOT NULL,
+    name       TEXT    NOT NULL,
+    created_at TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, contact_id)
+);
+
+-- Выходы на маршрут с контрольным сроком. Время — UTC в формате SQLite
+CREATE TABLE IF NOT EXISTS trips (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL,
+    user_name  TEXT    NOT NULL,
+    peak_id    INTEGER NOT NULL,
+    peak_name  TEXT    NOT NULL,
+    peak_ele   INTEGER NOT NULL,
+    tz         TEXT    NOT NULL,      -- часовой пояс вершины — в нём показываем время
+    started_at TEXT    NOT NULL,
+    deadline   TEXT    NOT NULL,
+    status     TEXT    NOT NULL DEFAULT 'active',   -- active | done | cancelled
+    reminded   INTEGER NOT NULL DEFAULT 0,          -- срок прошёл — напомнили самому
+    alerted    INTEGER NOT NULL DEFAULT 0           -- сообщили доверенным контактам
+);
+CREATE INDEX IF NOT EXISTS trips_active ON trips (status, deadline);
 
 -- Подписки на прогноз выходных для вершин
 CREATE TABLE IF NOT EXISTS peak_subs (
@@ -83,7 +111,8 @@ MIGRATIONS = [
     ("users", "lang", "TEXT"), ("peaks", "catalog_id", "INTEGER"),
     ("users", "last_seen", "TEXT"), ("users", "digest_week", "TEXT"),
     ("users", "route_lat", "REAL"), ("users", "route_lon", "REAL"), ("users", "route_ele", "REAL"),
-    ("users", "route_at", "TEXT"), ("peaks", "share_token", "TEXT"),
+    ("users", "route_at", "TEXT"), ("peaks", "share_token", "TEXT"), ("users", "invite_token", "TEXT"),
+    ("users", "name", "TEXT"),
 ]
 
 
@@ -99,6 +128,7 @@ class User:
     last_sent: str | None
     menu_msg_id: int | None
     lang: str = DEFAULT_LANG
+    name: str | None = None
     digest_week: str | None = None
     route_lat: float | None = None
     route_lon: float | None = None
@@ -122,6 +152,7 @@ class User:
             last_sent=row["last_sent"],
             menu_msg_id=row["menu_msg_id"],
             lang=row["lang"] or DEFAULT_LANG,
+            name=row["name"],
             digest_week=row["digest_week"],
             route_lat=row["route_lat"],
             route_lon=row["route_lon"],
@@ -153,6 +184,27 @@ class Peak:
 
 MAX_PEAKS = 10
 MAX_SUBS = 5
+MAX_CONTACTS = 5
+
+
+@dataclass
+class Trip:
+    id: int
+    user_id: int
+    user_name: str
+    peak_id: int
+    peak_name: str
+    peak_ele: int
+    tz: str
+    started_at: str
+    deadline: str
+    status: str
+    reminded: bool
+    alerted: bool
+
+    @classmethod
+    def from_row(cls, row: aiosqlite.Row) -> Trip:
+        return cls(**{**dict(row), "reminded": bool(row["reminded"]), "alerted": bool(row["alerted"])})
 NAME_COLUMNS = {"ru": "name_ru", "uz": "name_uz", "en": "name_en"}
 
 
@@ -187,13 +239,16 @@ class Database:
         assert self._conn, "Database.connect() не вызван"
         return self._conn
 
-    async def ensure_user(self, user_id: int, lang: str) -> None:
+    async def ensure_user(self, user_id: int, lang: str, name: str | None = None) -> None:
         """Создать пользователя при первом обращении, сразу с языком из Telegram, и отметить активность."""
         await self.conn.execute(
             "INSERT OR IGNORE INTO users (user_id, notify_time, lang) VALUES (?, ?, ?)",
             (user_id, self._default_time, lang),
         )
-        await self.conn.execute("UPDATE users SET last_seen = CURRENT_TIMESTAMP WHERE user_id = ?", (user_id,))
+        await self.conn.execute(
+            "UPDATE users SET last_seen = CURRENT_TIMESTAMP, name = coalesce(?, name) WHERE user_id = ?",
+            (name[:64] if name else None, user_id),
+        )
         await self.conn.commit()
 
     async def get_user(self, user_id: int) -> User:
@@ -317,6 +372,82 @@ class Database:
         )
         await self.conn.commit()
 
+    # ── доверенные контакты и контрольный срок ──
+
+    async def invite_token(self, user_id: int) -> str:
+        await self.get_user(user_id)
+        await self.conn.execute(
+            "UPDATE users SET invite_token = ? WHERE user_id = ? AND invite_token IS NULL",
+            (secrets.token_hex(6), user_id),
+        )
+        await self.conn.commit()
+        async with self.conn.execute("SELECT invite_token FROM users WHERE user_id = ?", (user_id,)) as cur:
+            return (await cur.fetchone())[0]
+
+    async def user_by_invite(self, token: str) -> int | None:
+        async with self.conn.execute("SELECT user_id FROM users WHERE invite_token = ?", (token,)) as cur:
+            row = await cur.fetchone()
+        return row[0] if row else None
+
+    async def contacts(self, user_id: int) -> list[tuple[int, str]]:
+        async with self.conn.execute(
+            "SELECT contact_id, name FROM contacts WHERE user_id = ? ORDER BY created_at", (user_id,)
+        ) as cur:
+            return [(row[0], row[1]) for row in await cur.fetchall()]
+
+    async def add_contact(self, user_id: int, contact_id: int, name: str) -> None:
+        await self.conn.execute(
+            "INSERT INTO contacts (user_id, contact_id, name) VALUES (?, ?, ?) "
+            "ON CONFLICT(user_id, contact_id) DO UPDATE SET name = excluded.name",
+            (user_id, contact_id, name[:64]),
+        )
+        await self.conn.commit()
+
+    async def remove_contact(self, user_id: int, contact_id: int) -> None:
+        await self.conn.execute("DELETE FROM contacts WHERE user_id = ? AND contact_id = ?", (user_id, contact_id))
+        await self.conn.commit()
+
+    async def active_trip(self, user_id: int) -> Trip | None:
+        async with self.conn.execute(
+            "SELECT * FROM trips WHERE user_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1", (user_id,)
+        ) as cur:
+            row = await cur.fetchone()
+        return Trip.from_row(row) if row else None
+
+    async def start_trip(
+        self, user_id: int, user_name: str, peak: Peak, tz: str, started_at: str, deadline: str,
+    ) -> Trip:
+        await self.conn.execute(
+            "UPDATE trips SET status = 'cancelled' WHERE user_id = ? AND status = 'active'", (user_id,)
+        )
+        cur = await self.conn.execute(
+            "INSERT INTO trips (user_id, user_name, peak_id, peak_name, peak_ele, tz, started_at, deadline) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (user_id, user_name[:64], peak.id, peak.name, peak.ele, tz, started_at, deadline),
+        )
+        await self.conn.commit()
+        return await self.trip(cur.lastrowid)
+
+    async def trip(self, trip_id: int) -> Trip | None:
+        async with self.conn.execute("SELECT * FROM trips WHERE id = ?", (trip_id,)) as cur:
+            row = await cur.fetchone()
+        return Trip.from_row(row) if row else None
+
+    async def update_trip(self, trip_id: int, **fields) -> Trip | None:
+        unknown = fields.keys() - {"deadline", "status", "reminded", "alerted"}
+        if unknown:
+            raise ValueError(f"Неизвестные поля: {unknown}")
+        assignments = ", ".join(f"{k} = ?" for k in fields)
+        await self.conn.execute(f"UPDATE trips SET {assignments} WHERE id = ?", (*fields.values(), trip_id))
+        await self.conn.commit()
+        return await self.trip(trip_id)
+
+    async def overdue_trips(self, now: str) -> list[Trip]:
+        async with self.conn.execute(
+            "SELECT * FROM trips WHERE status = 'active' AND deadline <= ? AND alerted = 0", (now,)
+        ) as cur:
+            return [Trip.from_row(row) for row in await cur.fetchall()]
+
     # ── для админа ──
 
     async def stats(self) -> dict[str, int]:
@@ -339,6 +470,9 @@ class Database:
             "subs": "SELECT count(*) FROM peak_subs",
             "subscribers": "SELECT count(DISTINCT user_id) FROM peak_subs",
             "on_route_1d": "SELECT count(*) FROM users WHERE route_at >= datetime('now', '-1 day')",
+            "trips_7d": "SELECT count(*) FROM trips WHERE started_at >= datetime('now', '-7 days')",
+            "trips_active": "SELECT count(*) FROM trips WHERE status = 'active'",
+            "contacts": "SELECT count(*) FROM contacts",
         }
         result = {}
         for key, query in queries.items():

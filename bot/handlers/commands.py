@@ -6,6 +6,7 @@ from aiogram.types import Message
 from bot import screens, ui
 from bot.db import Database
 from bot.handlers import mountains as mountain_screens
+from bot.handlers import trips
 from bot.services import MountainService, WeatherService
 
 router = Router(name="commands")
@@ -32,7 +33,10 @@ async def cmd_start_link(
     chat_id = message.chat.id
     await ui.delete_incoming(message)
     await ui.leave_location_mode(bot, state, chat_id)
-    if not await mountain_screens.open_link(bot, db, mountains, admins, chat_id, command.args or ""):
+    payload = command.args or ""
+    if payload[:1] == "c" and await trips.open_invite(bot, db, chat_id, payload[1:]):
+        return
+    if not await mountain_screens.open_link(bot, db, mountains, admins, chat_id, payload):
         await _open("home", message, bot, state, db, weather)
 
 

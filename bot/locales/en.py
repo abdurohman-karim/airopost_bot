@@ -549,6 +549,95 @@ STRINGS.update({
         "⛰ Private peaks: {peaks} of {peak_owners} users\n"
         "🏔 In the catalog: {catalog}, from users {community} · ⏳ pending: {pending}\n"
         "🔔 Weekend forecast subscriptions: {subs} of {subscribers} users\n"
-        "🧗 On a route in the last day: {on_route_1d}"
+        "🧗 On a route in the last day: {on_route_1d}\n"
+        "⏱ Trips in 7 days: {trips_7d} · on a route now: {trips_active} · trusted contacts: {contacts}"
     ),
+})
+
+
+# ── check-in deadline and trusted contacts ──
+STRINGS.update({
+    "m_live_hint": (
+        "📡 You can turn on live sharing: 📎 → Location → <b>«Share My Live Location»</b>. "
+        "The point will then update by itself — for SOS and the check-in deadline."
+    ),
+    "trip_title": "⏱ <b>Check-in deadline</b> · {name}",
+    "trip_intro": (
+        "Set when you'll be back. If you don't tap «✅ I'm back», I'll remind you first, and 30 minutes later "
+        "I'll tell your trusted contacts where you went and send your last point from the route."
+    ),
+    "trip_contacts": "👥 Trusted contacts: {names}",
+    "trip_no_contacts": "👥 No trusted contacts yet — without them I can only remind you. Add one below.",
+    "trip_sunset": "🌅 Sunset today at {time}",
+    "trip_pick": "In how many hours will you be back? 👇\n<i>Or type the return time, e.g. 18:30</i>",
+    "trip_active_title": "⏱ <b>You're on a route</b> · {name}",
+    "trip_started": "🚶 Started at {time}",
+    "trip_deadline": "🏁 Back by <b>{time}</b> · {left} left",
+    "trip_overdue": "⏰ The <b>{time}</b> deadline passed {late} ago",
+    "trip_no_point": "📍 No point from the route yet — send your location in «🧗 I'm on the route».",
+    "trip_point": "📍 Last point: {time} ({ago})",
+    "trip_point_ele": " · ≈ {ele} m",
+    "trip_alerted_note": "🚨 Your contacts have been alerted — check in as soon as you're safe.",
+    "trip_live_hint": "<i>Tip: turn on live location in «🧗 I'm on the route» — the point will update by itself.</i>",
+    "trip_reminder": (
+        "⏰ <b>The check-in deadline has passed</b>\n\n"
+        "The return from «{name}» was planned by {time}. Is everything OK?\n\n"
+        "If you don't check in within 30 minutes, your trusted contacts will be alerted."
+    ),
+    "trip_alarm_title": "🚨 <b>No check-in: {who}</b>",
+    "trip_alarm_body": (
+        "⛰ Route: «{name}» ({ele} m)\n"
+        "🚶 Started: {date}, {start}\n"
+        "🏁 Deadline: <b>{deadline}</b> — passed, no «I'm back» check-in\n"
+        "👤 Profile: {who}"
+    ),
+    "trip_alarm_todo": (
+        "<b>What to do</b>\n"
+        "1. Try to get in touch: call or message {who}.\n"
+        "2. No luck — call <b>112</b> and give them the route, start time and last point.\n"
+        "I'll let you know as soon as there's a check-in."
+    ),
+    "trip_owner_alerted": (
+        "🚨 <b>The check-in deadline passed 30 minutes ago</b>\n\n"
+        "Your trusted contacts have been alerted: {names}.\n"
+        "As soon as you're safe, tap «✅ I'm back» — they'll get an all-clear."
+    ),
+    "trip_back_notice": "✅ <b>All clear:</b> {who} checked in back from «{name}», everything is fine.",
+    "trip_extended_notice": "🔄 {who} is in touch and extends the check-in deadline to {time}.",
+    "contacts_title": "👥 <b>Trusted contacts</b>",
+    "contacts_intro": (
+        "If you're not back from a route by the deadline, I'll send them where you went and your last point. "
+        "Invite someone with the button below: they open the link in Telegram and confirm. Up to 5 contacts."
+    ),
+    "contacts_list": "Now: {names}\n<i>Tap a name to remove the contact.</i>",
+    "contacts_empty": "Nobody yet.",
+    "invite_text": (
+        "👥 <b>{who}</b> asks you to be a trusted contact for hikes.\n\n"
+        "If {who} isn't back from a route by the deadline, I'll send you where they went and their last point. "
+        "Nothing else: no location at other times, no newsletters."
+    ),
+    "invite_share": (
+        "Be my trusted contact for hikes: if I'm not back from a route on time, "
+        "the AiroPost bot will tell you where to look for me."
+    ),
+    "invite_done": "✅ Done! You're a trusted contact for {who}. If something goes wrong, I'll write.",
+    "invite_own": "🔗 This is your own link — send it to a friend or relative.",
+    "contact_added_notice": "👥 {who} is now your trusted contact.",
+    "btn_trip": "⏱ Check-in deadline",
+    "btn_trip_active": "⏱ On a route: {name}",
+    "btn_trip_contacts": "👥 Trusted contacts ({n})",
+    "btn_trip_contacts_short": "👥 Contacts",
+    "btn_trip_done": "✅ I'm back",
+    "btn_trip_extend": "🔄 +{h} h",
+    "btn_trip_cancel": "❌ Cancel the trip",
+    "btn_invite": "➕ Invite a contact",
+    "btn_invite_yes": "✅ I agree",
+    "btn_invite_no": "Decline",
+    "t_trip_started": "⏱ Trip started — be back by {time}",
+    "t_trip_done": "✅ Welcome back!",
+    "t_trip_extended": "🔄 Deadline extended to {time}",
+    "t_trip_cancelled": "Trip cancelled",
+    "t_contact_removed": "Contact removed",
+    "t_contacts_limit": "This person already has {n} trusted contacts — no more can be added.",
+    "t_invite_stale": "The invitation is outdated — ask for a new link.",
 })
