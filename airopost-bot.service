@@ -1,0 +1,16 @@
+[Unit]
+Description=AiroPost Telegram bot (weather and air quality)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/home/bots/airopost
+ExecStart=/home/bots/airopost/.venv/bin/python -m bot
+Environment=PYTHONUNBUFFERED=1
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+MemoryMax=300M
+
+[Install]
+WantedBy=multi-user.target

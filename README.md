@@ -146,6 +146,22 @@ copy .env.example .env          # Linux/macOS: cp .env.example .env
 python -m bot
 ```
 
+### На сервере (systemd)
+
+С вашего компьютера, из папки проекта:
+
+```bash
+./deploy.sh root@IP_СЕРВЕРА
+```
+
+Скрипт копирует на сервер только `bot/`, `requirements.txt`, `.env.example` и юнит в `/home/bots/airopost`,
+ставит зависимости (повторно — только если изменился `requirements.txt`) и службу `airopost-bot`.
+Нужен Python 3.10+. При первом запуске скрипт создаёт `.env` и останавливается: впишите `BOT_TOKEN`
+(`nano /home/bots/airopost/.env`) и запустите `./deploy.sh` ещё раз. Дальше та же команда — обновление.
+База (`data/bot.db`) и `.env` на сервере не перезаписываются.
+
+Логи: `journalctl -u airopost-bot -f`.
+
 ## Команды
 
 - `/start` — погода сейчас (или приветствие, если местность ещё не выбрана)
