@@ -356,10 +356,10 @@ STRINGS.update({
 # ── peak catalog and moderation ──
 STRINGS.update({
     "m_private_note": "🔒 Your peaks are visible only to you.",
-    "m_catalog_btn": "🏔 Peaks of Uzbekistan ({n})",
-    "m_catalog_title": "🏔 <b>Peaks of Uzbekistan</b>",
+    "m_catalog_btn": "🏔 Peak catalog ({n})",
+    "m_catalog_title": "🏔 <b>Peak catalog</b>",
     "m_catalog_intro": (
-        "The main peaks for hiking and climbing — open to everyone. "
+        "The main peaks of Uzbekistan and neighbouring countries for hiking and climbing — open to everyone. "
         "You can suggest your own peak for the catalog with the 📢 button on its page."
     ),
     "m_catalog_page": "<i>Page {p} of {n}</i>",
@@ -371,17 +371,17 @@ STRINGS.update({
     "st_pending": "⏳ Waiting for admin review",
     "st_approved": "✅ Published in the catalog",
     "st_rejected": "❌ Publication rejected — you can submit it again",
-    "st_catalog": "🏔 Peaks of Uzbekistan catalog",
+    "st_catalog": "🏔 Peak catalog",
     "st_community": "🏔 Catalog · suggested by a user",
     "m_publish_confirm": (
         "📢 <b>Publish “{name}”?</b>\n\n"
         "⛰ {ele} m · 📍 <code>{lat}, {lon}</code>\n\n"
-        "An admin will review the peak. Once approved, it appears in the “Peaks of Uzbekistan” "
+        "An admin will review the peak. Once approved, it appears in the “Peak catalog” "
         "catalog and every user of the bot can see it."
     ),
     "m_published_notice": (
         "✅ <b>Your peak “{name}” has been published!</b>\n"
-        "Everyone can now see it in the “Peaks of Uzbekistan” catalog."
+        "Everyone can now see it in the “Peak catalog” catalog."
     ),
     "m_rejected_notice": (
         "❌ <b>Publication of “{name}” was rejected.</b>\n"
@@ -825,4 +825,12 @@ STRINGS.update({
     't_hike_go': "🙋 You're in!",
     't_hike_maybe': '🤔 Marked as maybe',
     't_hike_off': 'Mark removed',
+})
+
+# ── регионы соседних стран ──
+STRINGS.update({
+    'region_fann': 'Fann Mountains (Tajikistan)',
+    'region_pamir': 'Pamirs (Tajikistan)',
+    'region_kyrgyz': 'Tian Shan (Kyrgyzstan)',
+    'region_kazakhstan': 'Kazakhstan',
 })

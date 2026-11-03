@@ -270,7 +270,8 @@ async def _show_weekend(
     user = await db.get_user(chat_id)
     await ui.show(bot, db, chat_id, mt.weekend_loading(lang), None, message_id)
     days = weekend.weekend_days(timeutil.local_now(user.tz or weekend.DEFAULT_TZ).replace(tzinfo=None))
-    entries = await weekend.collect(mountains, [*await db.catalog(lang), *await db.peaks(chat_id)], days)
+    catalog = weekend.nearby(await db.catalog(lang), user.lat, user.lon)
+    entries = await weekend.collect(mountains, [*catalog, *await db.peaks(chat_id)], days)
     await ui.show(bot, db, chat_id, mt.weekend(lang, entries, days), kb.weekend(lang, entries))
 
 

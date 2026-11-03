@@ -7,13 +7,16 @@ from datetime import date, datetime, timedelta
 
 from bot.db import Peak
 from bot.services import MountainService, WeatherError
-from bot.services.mountain import DayOutlook
+from bot.services.mountain import DayOutlook, distance_km
 
 RANK = {"good": 0, "caution": 1, "bad": 2}
 MAX_PEAKS = 30
 PARALLEL = 6
 LATE_HOUR = 15        # после 15:00 восхождение сегодня уже не начать — смотрим дальше
 DEFAULT_TZ = "Asia/Tashkent"   # если у пользователя нет домашней местности — каталог в Узбекистане
+NEAR_KM = 350                  # «на выходные» — вершины не дальше этого от дома
+HOME_REGIONS = ("tashkent", "jizzakh", "surkhandarya")   # без домашней местности — вершины Узбекистана
+EXPEDITION_ELE = 6000          # семитысячники — экспедиции, а не поход на выходные
 
 
 @dataclass
@@ -47,6 +50,14 @@ def weekend_key(days: list[date]) -> str:
 def rank(entry: Entry) -> tuple:
     ranks = [RANK[o.rating] for o in entry.days]
     return min(ranks), sum(ranks), max((o.wind_max or 0) for o in entry.days)
+
+
+def nearby(catalog: list[Peak], lat: float | None, lon: float | None) -> list[Peak]:
+    """Вершины каталога, до которых можно добраться на выходные: рядом с домом, а без дома — в Узбекистане."""
+    catalog = [p for p in catalog if p.ele < EXPEDITION_ELE]
+    if lat is None or lon is None:
+        return [p for p in catalog if p.region in HOME_REGIONS]
+    return [p for p in catalog if distance_km(lat, lon, p.lat, p.lon) <= NEAR_KM]
 
 
 def unique(peaks: list[Peak]) -> list[Peak]:

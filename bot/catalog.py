@@ -1,11 +1,11 @@
-"""Встроенный каталог основных вершин Узбекистана — виден всем пользователям.
+"""Встроенный каталог основных вершин Узбекистана и соседних стран — виден всем пользователям.
 
 Координаты и высоты — из OpenStreetMap (natural=peak, тег ele). При запуске бот обновляет
 эти записи в базе по ключу slug, поэтому правки здесь применяются автоматически.
 Вершины, которые предлагают пользователи, попадают в тот же каталог после одобрения админа.
 """
 
-REGIONS = ("tashkent", "jizzakh", "surkhandarya", "community")
+REGIONS = ("tashkent", "jizzakh", "surkhandarya", "fann", "pamir", "kyrgyz", "kazakhstan", "community")
 
 # slug, регион, название ru / uz / en, широта, долгота, высота
 PEAKS = [
@@ -26,6 +26,21 @@ PEAKS = [
     ("hayatbashi", "jizzakh", "Хаятбаши", "Hayotboshi", "Hayatbashi", 40.49510, 66.72046, 2169),
     ("khazret-sultan", "surkhandarya", "Хазрет Султан", "Hazrati Sulton", "Khazret Sultan",
      38.94778, 68.17247, 4643),
+    # Соседние страны: популярные цели походов и восхождений из Узбекистана
+    ("chimtarga", "fann", "Чимтарга", "Chimtarg‘a", "Chimtarga", 39.19788, 68.19559, 5489),
+    ("bodkhona", "fann", "Бодхона", "Bodxona", "Bodkhona", 39.18986, 68.29361, 5152),
+    ("mirali", "fann", "Мирали", "Mirali", "Mirali", 39.21084, 68.20083, 5106),
+    ("somoni", "pamir", "Пик Исмоила Сомони", "Ismoil Somoniy choʻqqisi", "Ismoil Somoni Peak", 38.94301, 72.01559, 7495),
+    ("lenin", "pamir", "Пик Ленина", "Lenin choʻqqisi", "Lenin Peak", 39.34698, 72.87918, 7134),
+    ("korzhenevskaya", "pamir", "Пик Корженевской", "Korjenevskaya choʻqqisi", "Korzhenevskaya Peak",
+     39.05688, 72.00968, 7105),
+    ("uchitel", "kyrgyz", "Учитель (Ала-Арча)", "Uchitel (Ala-Archa)", "Uchitel (Ala-Archa)", 42.53802, 74.55306, 4530),
+    ("talgar", "kazakhstan", "Талгар", "Talgar", "Talgar Peak", 43.11863, 77.33988, 4979),
+    ("sayram", "kazakhstan", "Сайрам", "Sayram", "Sayram Peak", 42.13781, 70.48066, 4238),
+    ("big-almaty", "kazakhstan", "Большой Алматинский пик", "Katta Olmaota choʻqqisi", "Big Almaty Peak",
+     43.05529, 76.93359, 3680),
+    ("aksay", "kazakhstan", "Пик Аксай", "Aqsoy choʻqqisi", "Aksay Peak", 43.03621, 76.82032, 3640),
+    ("furmanov", "kazakhstan", "Пик Фурманова", "Furmanov choʻqqisi", "Furmanov Peak", 43.14990, 77.11567, 3053),
 ]
 
 # Перевалы на автодорогах: ключ, название ru / uz / en, дорога ru / uz / en, широта, долгота, высота (OpenStreetMap)

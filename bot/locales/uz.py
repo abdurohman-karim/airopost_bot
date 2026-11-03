@@ -359,10 +359,10 @@ STRINGS.update({
 # ── choʻqqilar katalogi va moderatsiya ──
 STRINGS.update({
     "m_private_note": "🔒 Choʻqqilaringizni faqat siz koʻrasiz.",
-    "m_catalog_btn": "🏔 Oʻzbekiston choʻqqilari ({n})",
-    "m_catalog_title": "🏔 <b>Oʻzbekiston choʻqqilari</b>",
+    "m_catalog_btn": "🏔 Choʻqqilar katalogi ({n})",
+    "m_catalog_title": "🏔 <b>Choʻqqilar katalogi</b>",
     "m_catalog_intro": (
-        "Sayohat va choʻqqiga chiqish uchun asosiy choʻqqilar — hamma uchun ochiq. "
+        "Oʻzbekiston va qoʻshni davlatlarning sayohat va choʻqqiga chiqish uchun asosiy choʻqqilari — hamma uchun ochiq. "
         "Oʻz choʻqqingizni uning sahifasidagi 📢 tugmasi orqali katalogga taklif qilishingiz mumkin."
     ),
     "m_catalog_page": "<i>{n} sahifadan {p}-sahifa</i>",
@@ -374,17 +374,17 @@ STRINGS.update({
     "st_pending": "⏳ Administrator tekshiruvida",
     "st_approved": "✅ Katalogda eʼlon qilingan",
     "st_rejected": "❌ Eʼlon qilish rad etildi — qayta yuborish mumkin",
-    "st_catalog": "🏔 Oʻzbekiston choʻqqilari katalogi",
+    "st_catalog": "🏔 Choʻqqilar katalogi",
     "st_community": "🏔 Katalog · foydalanuvchi taklif qilgan",
     "m_publish_confirm": (
         "📢 <b>«{name}» eʼlon qilinsinmi?</b>\n\n"
         "⛰ {ele} m · 📍 <code>{lat}, {lon}</code>\n\n"
-        "Choʻqqini administrator tekshiradi. Tasdiqlangach, u «Oʻzbekiston choʻqqilari» "
+        "Choʻqqini administrator tekshiradi. Tasdiqlangach, u «Choʻqqilar katalogi» "
         "katalogida paydo boʻladi va uni botning barcha foydalanuvchilari koʻradi."
     ),
     "m_published_notice": (
         "✅ <b>«{name}» choʻqqingiz eʼlon qilindi!</b>\n"
-        "Endi uni «Oʻzbekiston choʻqqilari» katalogida hamma koʻradi."
+        "Endi uni «Choʻqqilar katalogi» katalogida hamma koʻradi."
     ),
     "m_rejected_notice": (
         "❌ <b>«{name}» choʻqqisini eʼlon qilish rad etildi.</b>\n"
@@ -835,4 +835,12 @@ STRINGS.update({
     't_hike_go': '🙋 Siz roʻyxatdasiz!',
     't_hike_maybe': '🤔 Oʻylayotganingiz belgilandi',
     't_hike_off': 'Belgi olib tashlandi',
+})
+
+# ── регионы соседних стран ──
+STRINGS.update({
+    'region_fann': 'Fan togʻlari (Tojikiston)',
+    'region_pamir': 'Pomir (Tojikiston)',
+    'region_kyrgyz': 'Tyan-Shan (Qirgʻiziston)',
+    'region_kazakhstan': 'Qozogʻiston',
 })
