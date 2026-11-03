@@ -76,6 +76,20 @@ CREATE TABLE IF NOT EXISTS trips (
 );
 CREATE INDEX IF NOT EXISTS trips_active ON trips (status, deadline);
 
+-- Отчёты об условиях на тропе к вершинам каталога: видны всем 7 дней
+CREATE TABLE IF NOT EXISTS reports (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    catalog_id INTEGER NOT NULL,
+    user_id    INTEGER NOT NULL,
+    user_name  TEXT    NOT NULL,
+    tags       INTEGER NOT NULL DEFAULT 0,      -- биты из bot.report_texts.TAGS
+    text       TEXT,
+    photo_id   TEXT,
+    hidden     INTEGER NOT NULL DEFAULT 0,      -- скрыт администратором или автором
+    created_at TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS reports_peak ON reports (catalog_id, created_at);
+
 -- Избранные места: быстрое переключение местности и поездки
 CREATE TABLE IF NOT EXISTS places (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -234,6 +248,20 @@ MAX_SUBS = 5
 MAX_CONTACTS = 5
 MAX_ROUTES = 5
 MAX_PLACES = 8
+REPORT_DAYS = 7
+REPORTS_PER_DAY = 5       # от одного человека — защита от спама
+
+
+@dataclass
+class Report:
+    id: int
+    catalog_id: int
+    user_id: int
+    user_name: str
+    tags: int
+    text: str | None
+    photo_id: str | None
+    created_at: str
 SAME_CITY = 0.01          # ~1 км — то же место
 
 
@@ -507,6 +535,47 @@ class Database:
         ) as cur:
             return [Trip.from_row(row) for row in await cur.fetchall()]
 
+    # ── отчёты об условиях на тропе ──
+
+    _REPORT = "SELECT id, catalog_id, user_id, user_name, tags, text, photo_id, created_at FROM reports "
+
+    async def reports(self, catalog_id: int) -> list[Report]:
+        async with self.conn.execute(
+            self._REPORT + "WHERE catalog_id = ? AND hidden = 0 AND created_at >= datetime('now', ?) "
+            "ORDER BY id DESC", (catalog_id, f"-{REPORT_DAYS} days"),
+        ) as cur:
+            return [Report(*row) for row in await cur.fetchall()]
+
+    async def report(self, report_id: int) -> Report | None:
+        async with self.conn.execute(self._REPORT + "WHERE id = ?", (report_id,)) as cur:
+            row = await cur.fetchone()
+        return Report(*row) if row else None
+
+    async def reports_today(self, user_id: int) -> int:
+        async with self.conn.execute(
+            "SELECT count(*) FROM reports WHERE user_id = ? AND created_at >= datetime('now', '-1 day')", (user_id,)
+        ) as cur:
+            return (await cur.fetchone())[0]
+
+    async def add_report(
+        self, catalog_id: int, user_id: int, user_name: str, tags: int, text: str | None, photo_id: str | None,
+    ) -> Report:
+        cur = await self.conn.execute(
+            "INSERT INTO reports (catalog_id, user_id, user_name, tags, text, photo_id) VALUES (?, ?, ?, ?, ?, ?)",
+            (catalog_id, user_id, user_name[:64], tags, text, photo_id),
+        )
+        await self.conn.commit()
+        return await self.report(cur.lastrowid)
+
+    async def hide_report(self, report_id: int, user_id: int | None = None) -> bool:
+        """Скрыть отчёт: автором (user_id) или администратором (None)."""
+        query, args = "UPDATE reports SET hidden = 1 WHERE id = ? AND hidden = 0", [report_id]
+        if user_id is not None:
+            query, args = query + " AND user_id = ?", [report_id, user_id]
+        cur = await self.conn.execute(query, args)
+        await self.conn.commit()
+        return cur.rowcount > 0
+
     # ── избранные места ──
 
     async def places(self, user_id: int) -> list[SavedPlace]:
@@ -636,6 +705,7 @@ class Database:
             "trips_7d": "SELECT count(*) FROM trips WHERE started_at >= datetime('now', '-7 days')",
             "trips_active": "SELECT count(*) FROM trips WHERE status = 'active'",
             "contacts": "SELECT count(*) FROM contacts",
+            "reports_7d": "SELECT count(*) FROM reports WHERE created_at >= datetime('now', '-7 days') AND hidden = 0",
         }
         result = {}
         for key, query in queries.items():

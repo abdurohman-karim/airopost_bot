@@ -550,7 +550,8 @@ STRINGS.update({
         "🏔 In the catalog: {catalog}, from users {community} · ⏳ pending: {pending}\n"
         "🔔 Weekend forecast subscriptions: {subs} of {subscribers} users\n"
         "🧗 On a route in the last day: {on_route_1d}\n"
-        "⏱ Trips in 7 days: {trips_7d} · on a route now: {trips_active} · trusted contacts: {contacts}"
+        "⏱ Trips in 7 days: {trips_7d} · on a route now: {trips_active} · trusted contacts: {contacts}\n"
+        "📝 Trail reports in 7 days: {reports_7d}"
     ),
 })
 
@@ -768,4 +769,40 @@ STRINGS.update({
     't_pl_limit_plain': '❗️ You already have 8 places — delete one to add a new one.',
     't_pl_trip_set': '✈️ Trip planned. On the first morning the summary switches by itself.',
     't_pl_trip_cancelled': 'Trip cancelled',
+})
+
+# ── отчёты об условиях на тропе ──
+STRINGS.update({
+    'btn_reports': '📝 Trail conditions ({n})',
+    'btn_rep_add': '➕ Report conditions',
+    'btn_rep_photos': '📷 Photos ({n})',
+    'btn_rep_mine': '🗑 Delete my report',
+    'btn_rep_send': '✅ Publish',
+    'btn_rep_hide': '🙈 Hide report',
+    'tag_dry': 'dry, clear trail',
+    'tag_mud': 'mud',
+    'tag_snow': 'snow on the trail',
+    'tag_ice': 'ice',
+    'tag_water': 'water available',
+    'tag_nowater': 'no water',
+    'tag_ford': 'tricky river crossing',
+    'tag_dogs': 'dogs near sheepfolds',
+    'rep_title': '📝 <b>Trail conditions</b> · {name}',
+    'rep_intro': '<i>What people saw on the route in the last 7 days — newest first.</i>',
+    'rep_empty': 'No reports yet. Been here recently? Tell others — it helps.',
+    'rep_more': '…and {n} more',
+    'rep_now': 'just now',
+    'rep_hours': '{n} h ago',
+    'rep_days': '{n} d ago',
+    'rep_latest': '📝 Latest report ({ago}): {what}',
+    'rep_add_title': '📝 <b>Trail conditions</b> · {name}',
+    'rep_add_intro': 'Tick what you saw and, if you like, write a few words or send a photo. Everyone viewing this peak will see the report for 7 days.',
+    'rep_draft': '<b>Your report:</b>',
+    'rep_photo_attached': '📷 photo attached',
+    'rep_admin': '📝 <b>New report</b> · {name}',
+    't_rep_sent': '✅ Thanks! Report published',
+    't_rep_empty': 'Tick at least one item or write a few words',
+    't_rep_limit': 'No more than {n} reports a day',
+    't_rep_deleted': '🗑 Report deleted',
+    't_rep_hidden': '🙈 Report hidden',
 })

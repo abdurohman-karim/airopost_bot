@@ -82,6 +82,12 @@ class PlCb(CallbackData, prefix="pl"):
     d: int = 0      # поездка: сдвиг первого дня от сегодня; для tset — сдвиг·100 + число дней
 
 
+class RepCb(CallbackData, prefix="rp"):
+    a: str          # list | add | tag | send | mine | photos | hide (админ)
+    id: int = 0     # вершина (id каталога со знаком минус, как у Peak) или отчёт для hide/mine
+    t: int = 0      # tag: номер отметки
+
+
 class PeakPickCb(CallbackData, prefix="mp"):
     idx: int
 
@@ -284,6 +290,7 @@ def catalog_region(lang: str, region: str, peaks: list, page: int, pages: int) -
 
 def peak(
     lang: str, p, can_publish: bool = False, subscribed: bool = False, share_url: str | None = None,
+    reports: int | None = None,
 ) -> InlineKeyboardMarkup:
     """Вершина из каталога — только просмотр; своя — ещё правка, удаление и публикация."""
     loc = locales.get(lang)
@@ -299,6 +306,8 @@ def peak(
         bottom,
         [_btn(loc["btn_m_unsub" if subscribed else "btn_m_sub"], MCb(a="sub", id=p.id))],
     ]
+    if reports is not None:
+        rows.insert(5, [_btn(loc("btn_reports", n=reports), RepCb(a="list", id=p.id))])
     if p.public:
         region = p.region if p.region in REGIONS else "community"
         rows.append([_btn(loc["btn_m_catalog_back"], MCb(a="reg", id=REGIONS.index(region)))])
@@ -566,3 +575,28 @@ def trip_len(lang: str, place_id: int, offset: int) -> InlineKeyboardMarkup:
     buttons = [_btn(loc("pl_days", n=n), PlCb(a="tset", id=place_id, d=offset * 100 + n))
                for n in (1, 2, 3, 4, 5, 7, 10, 14)]
     return InlineKeyboardMarkup(inline_keyboard=[buttons[:4], buttons[4:], _to_places(lang)])
+
+
+# ── отчёты об условиях на тропе ─────────────────────────────────────────────
+
+def reports(lang: str, peak_id: int, photos: int, own: int | None) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    rows = [[_btn(loc["btn_rep_add"], RepCb(a="add", id=peak_id))]]
+    if photos:
+        rows.append([_btn(loc("btn_rep_photos", n=photos), RepCb(a="photos", id=peak_id))])
+    if own:
+        rows.append([_btn(loc["btn_rep_mine"], RepCb(a="mine", id=own))])
+    return InlineKeyboardMarkup(inline_keyboard=[*rows, _to_peak(lang, peak_id)])
+
+
+def report_draft(lang: str, peak_id: int, tags: list[tuple[int, str]], mask: int, ready: bool) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    buttons = [_btn(("✅ " if mask & (1 << i) else "") + label, RepCb(a="tag", id=peak_id, t=i)) for i, label in tags]
+    rows = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]
+    if ready:
+        rows.append([_btn(loc["btn_rep_send"], RepCb(a="send", id=peak_id))])
+    return InlineKeyboardMarkup(inline_keyboard=[*rows, [_btn(loc["btn_cancel"], RepCb(a="list", id=peak_id))]])
+
+
+def report_admin(lang: str, report_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[_btn(locales.get(lang)["btn_rep_hide"], RepCb(a="hide", id=report_id))]])

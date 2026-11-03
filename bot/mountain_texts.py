@@ -284,11 +284,12 @@ def _updated(loc: Locale, fc: MountainForecast) -> str:
 
 # ── экраны вершины ──────────────────────────────────────────────────────────
 
-def peak(lang: str, p: Peak, fc: MountainForecast, header: str | None = None) -> str:
+def peak(lang: str, p: Peak, fc: MountainForecast, header: str | None = None, report: str | None = None) -> str:
     loc = locales.get(lang)
     today = fc.local_now().date()
     lines = [header, ""] if header else []
-    lines += [peak_header(loc, p), f"📍 {p.lat:.4f}, {p.lon:.4f}", status_line(lang, p), ""]
+    lines += [peak_header(loc, p), f"📍 {p.lat:.4f}, {p.lon:.4f}", status_line(lang, p)]
+    lines += [report, ""] if report else [""]
     lines += _summit_now(loc, fc, fc.hour())
     lines += snow_lines(loc, fc)
     lines += _sun_and_uv(loc, fc)

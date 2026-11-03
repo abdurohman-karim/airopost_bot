@@ -557,7 +557,8 @@ STRINGS.update({
         "🏔 Katalogda: {catalog}, shundan foydalanuvchilardan {community} · ⏳ tekshiruvda: {pending}\n"
         "🔔 Dam olish prognoziga obunalar: {subs} ({subscribers} kishida)\n"
         "🧗 Sutkada yoʻlda boʻlganlar: {on_route_1d}\n"
-        "⏱ 7 kunda chiqishlar: {trips_7d} · hozir yoʻlda: {trips_active} · ishonchli kontaktlar: {contacts}"
+        "⏱ 7 kunda chiqishlar: {trips_7d} · hozir yoʻlda: {trips_active} · ishonchli kontaktlar: {contacts}\n"
+        "📝 7 kunda soʻqmoq hisobotlari: {reports_7d}"
     ),
 })
 
@@ -778,4 +779,40 @@ STRINGS.update({
     't_pl_limit_plain': '❗️ Joylar allaqachon 8 ta — yangisini qoʻshish uchun keraksizini oʻchiring.',
     't_pl_trip_set': '✈️ Safar rejalashtirildi. Birinchi kuni ertalab xulosa oʻzi almashadi.',
     't_pl_trip_cancelled': 'Safar bekor qilindi',
+})
+
+# ── отчёты об условиях на тропе ──
+STRINGS.update({
+    'btn_reports': '📝 Soʻqmoqdagi holat ({n})',
+    'btn_rep_add': '➕ Holat haqida aytish',
+    'btn_rep_photos': '📷 Rasmlar ({n})',
+    'btn_rep_mine': '🗑 Hisobotimni oʻchirish',
+    'btn_rep_send': '✅ Eʼlon qilish',
+    'btn_rep_hide': '🙈 Hisobotni yashirish',
+    'tag_dry': 'quruq, soʻqmoq toza',
+    'tag_mud': 'loy',
+    'tag_snow': 'soʻqmoqda qor',
+    'tag_ice': 'muz',
+    'tag_water': 'suv bor',
+    'tag_nowater': 'suv yoʻq',
+    'tag_ford': 'qiyin kechuv',
+    'tag_dogs': 'qoʻtonlar yonida itlar',
+    'rep_title': '📝 <b>Soʻqmoqdagi holat</b> · {name}',
+    'rep_intro': '<i>Soʻnggi 7 kunda odamlar yoʻlda nimani koʻrgan — yangilari tepada.</i>',
+    'rep_empty': 'Hozircha hisobotlar yoʻq. Yaqinda shu yerda boʻldingizmi? Aytib bering — boshqalarga yordam beradi.',
+    'rep_more': '…va yana {n} ta',
+    'rep_now': 'hozirgina',
+    'rep_hours': '{n} soat oldin',
+    'rep_days': '{n} kun oldin',
+    'rep_latest': '📝 Yangi hisobot ({ago}): {what}',
+    'rep_add_title': '📝 <b>Soʻqmoqdagi holat</b> · {name}',
+    'rep_add_intro': 'Nimani koʻrganingizni belgilang, xohlasangiz bir-ikki soʻz yozing yoki rasm yuboring. Hisobotni 7 kun davomida shu choʻqqini koʻrgan hamma koʻradi.',
+    'rep_draft': '<b>Hisobotingiz:</b>',
+    'rep_photo_attached': '📷 rasm biriktirildi',
+    'rep_admin': '📝 <b>Yangi hisobot</b> · {name}',
+    't_rep_sent': '✅ Rahmat! Hisobot eʼlon qilindi',
+    't_rep_empty': 'Kamida bittasini belgilang yoki bir-ikki soʻz yozing',
+    't_rep_limit': 'Sutkada {n} tadan ortiq hisobot mumkin emas',
+    't_rep_deleted': '🗑 Hisobot oʻchirildi',
+    't_rep_hidden': '🙈 Hisobot yashirildi',
 })

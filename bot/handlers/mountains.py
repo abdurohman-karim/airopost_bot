@@ -10,6 +10,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
 from bot import gear, links, locales, texts, timeutil, ui, weekend
 from bot import keyboards as kb
 from bot import mountain_texts as mt
+from bot import report_texts as rpt
 from bot.catalog import REGIONS
 from bot.coords import parse_coords
 from bot.db import MAX_PEAKS, MAX_SUBS, Database, Peak, User
@@ -94,7 +95,8 @@ async def _peak_screen(
         return mt.hourly(lang, peak, fc, page), kb.peak_hourly(lang, peak.id, page, pages)
     if action == "outlook":
         return mt.outlook(lang, peak, fc), kb.peak_back(lang, peak.id)
-    return mt.peak(lang, peak, fc, header), await _peak_keyboard(db, chat_id, lang, peak, admins)
+    report = rpt.latest(lang, await db.reports(peak.catalog_id)) if peak.public else None
+    return mt.peak(lang, peak, fc, header, report), await _peak_keyboard(db, chat_id, lang, peak, admins)
 
 
 async def _peak_keyboard(
@@ -103,8 +105,9 @@ async def _peak_keyboard(
     link = links.peak_link(peak)
     share_url = links.share(link, mt.share_text(lang, peak)) if link else None
     subscribed = peak.id in await db.subscriptions(chat_id)
+    reports = len(await db.reports(peak.catalog_id)) if peak.public else None
     # Публиковать можно, только если в боте настроен хотя бы один админ
-    return kb.peak(lang, peak, can_publish=bool(admins), subscribed=subscribed, share_url=share_url)
+    return kb.peak(lang, peak, can_publish=bool(admins), subscribed=subscribed, share_url=share_url, reports=reports)
 
 
 async def _add_and_open(
