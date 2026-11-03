@@ -90,6 +90,16 @@ CREATE TABLE IF NOT EXISTS reports (
 );
 CREATE INDEX IF NOT EXISTS reports_peak ON reports (catalog_id, created_at);
 
+-- Карточки «Идём в поход» в чатах (inline-режим): кто идёт, кто думает
+CREATE TABLE IF NOT EXISTS hike_people (
+    message_id TEXT    NOT NULL,      -- inline_message_id карточки
+    user_id    INTEGER NOT NULL,
+    name       TEXT    NOT NULL,
+    status     TEXT    NOT NULL,      -- go | maybe
+    updated_at TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (message_id, user_id)
+);
+
 -- Избранные места: быстрое переключение местности и поездки
 CREATE TABLE IF NOT EXISTS places (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -575,6 +585,42 @@ class Database:
         cur = await self.conn.execute(query, args)
         await self.conn.commit()
         return cur.rowcount > 0
+
+    # ── походы в чатах ──
+
+    async def hike_people(self, message_id: str) -> list[tuple[int, str, str]]:
+        async with self.conn.execute(
+            "SELECT user_id, name, status FROM hike_people WHERE message_id = ? ORDER BY updated_at", (message_id,)
+        ) as cur:
+            return [(row[0], row[1], row[2]) for row in await cur.fetchall()]
+
+    async def set_hike_status(self, message_id: str, user_id: int, name: str, status: str) -> bool:
+        """Отметить «иду» или «думаю»; повторное нажатие той же кнопки снимает отметку. True — отметка стоит."""
+        async with self.conn.execute(
+            "SELECT status FROM hike_people WHERE message_id = ? AND user_id = ?", (message_id, user_id)
+        ) as cur:
+            row = await cur.fetchone()
+        if row and row[0] == status:
+            await self.conn.execute("DELETE FROM hike_people WHERE message_id = ? AND user_id = ?", (message_id, user_id))
+            await self.conn.commit()
+            return False
+        await self.conn.execute(
+            "INSERT INTO hike_people (message_id, user_id, name, status) VALUES (?, ?, ?, ?) "
+            "ON CONFLICT(message_id, user_id) DO UPDATE SET status = excluded.status, name = excluded.name, "
+            "updated_at = CURRENT_TIMESTAMP",
+            (message_id, user_id, name[:64], status),
+        )
+        await self.conn.commit()
+        return True
+
+    async def search_catalog(self, query: str, lang: str, limit: int = 10) -> list[Peak]:
+        """Вершины каталога по названию на любом из трёх языков; без запроса — самые высокие.
+        Фильтруем в Python: lower() и LIKE в SQLite не понимают кириллицу."""
+        needle = query.casefold()
+        async with self.conn.execute("SELECT * FROM catalog WHERE status = 'approved' ORDER BY ele DESC") as cur:
+            rows = await cur.fetchall()
+        found = [r for r in rows if any(needle in (r[c] or "").casefold() for c in NAME_COLUMNS.values())]
+        return [self._catalog_peak(row, lang) for row in found[:limit]]
 
     # ── избранные места ──
 

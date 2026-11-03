@@ -809,3 +809,23 @@ STRINGS.update({
     't_rep_deleted': '🗑 Отчёт удалён',
     't_rep_hidden': '🙈 Отчёт скрыт',
 })
+
+# ── поход в чате (inline) ──
+STRINGS.update({
+    'btn_hike_invite': '👥 Позвать друзей в поход',
+    'btn_hike_go': '🙋 Иду',
+    'btn_hike_maybe': '🤔 Думаю',
+    'btn_hike_refresh': '🔄 Обновить прогноз',
+    'btn_hike_open': '⛰ Открыть в боте',
+    'hike_title': '⛰ <b>Поход: {name}</b> · {ele} м',
+    'hike_now': '{icon} На вершине сейчас {t}, ощущается {feels}, ветер {v} м/с',
+    'hike_no_fc': 'Прогноз сейчас недоступен — нажмите «Обновить прогноз» позже.',
+    'hike_who': '👥 <b>Кто идёт</b>',
+    'hike_go': '🙋 Идут ({n}): {names}',
+    'hike_maybe': '🤔 Думают ({n}): {names}',
+    'hike_nobody': 'Пока никого — жмите «🙋 Иду»',
+    'hike_footer': '<i>Прогноз на {time} · {bot}</i>',
+    't_hike_go': '🙋 Вы в списке!',
+    't_hike_maybe': '🤔 Отметили, что думаете',
+    't_hike_off': 'Отметка снята',
+})

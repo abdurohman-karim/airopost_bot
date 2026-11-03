@@ -816,3 +816,23 @@ STRINGS.update({
     't_rep_deleted': '🗑 Hisobot oʻchirildi',
     't_rep_hidden': '🙈 Hisobot yashirildi',
 })
+
+# ── поход в чате (inline) ──
+STRINGS.update({
+    'btn_hike_invite': '👥 Doʻstlarni sayohatga chaqirish',
+    'btn_hike_go': '🙋 Boraman',
+    'btn_hike_maybe': '🤔 Oʻylab koʻraman',
+    'btn_hike_refresh': '🔄 Prognozni yangilash',
+    'btn_hike_open': '⛰ Botda ochish',
+    'hike_title': '⛰ <b>Sayohat: {name}</b> · {ele} m',
+    'hike_now': '{icon} Hozir choʻqqida {t}, his qilinishi {feels}, shamol {v} m/s',
+    'hike_no_fc': 'Prognoz hozir mavjud emas — keyinroq «Prognozni yangilash»ni bosing.',
+    'hike_who': '👥 <b>Kim boradi</b>',
+    'hike_go': '🙋 Boradi ({n}): {names}',
+    'hike_maybe': '🤔 Oʻylayapti ({n}): {names}',
+    'hike_nobody': 'Hozircha hech kim — «🙋 Boraman»ni bosing',
+    'hike_footer': '<i>Prognoz {time} holatiga · {bot}</i>',
+    't_hike_go': '🙋 Siz roʻyxatdasiz!',
+    't_hike_maybe': '🤔 Oʻylayotganingiz belgilandi',
+    't_hike_off': 'Belgi olib tashlandi',
+})

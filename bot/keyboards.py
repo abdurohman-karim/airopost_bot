@@ -88,6 +88,12 @@ class RepCb(CallbackData, prefix="rp"):
     t: int = 0      # tag: номер отметки
 
 
+class HikeCb(CallbackData, prefix="hk"):
+    a: str          # go | maybe | refresh
+    k: str          # вершина: c<id каталога> или s<ключ ссылки> личной вершины
+    l: str = "ru"   # язык карточки — того, кто её отправил, а не того, кто нажал
+
+
 class PeakPickCb(CallbackData, prefix="mp"):
     idx: int
 
@@ -297,6 +303,7 @@ def peak(
     bottom = [_btn(loc["btn_m_offline"], MCb(a="offline", id=p.id))]
     if share_url:
         bottom.append(InlineKeyboardButton(text=loc["btn_m_share"], url=share_url))
+    invite = [InlineKeyboardButton(text=loc["btn_hike_invite"], switch_inline_query=p.name)]
     rows = [
         [_btn(loc["btn_refresh"], MCb(a="refresh", id=p.id))],
         [_btn(loc["btn_m_profile"], MCb(a="profile", id=p.id)),
@@ -304,10 +311,11 @@ def peak(
         [_btn(loc["btn_m_outlook"], MCb(a="outlook", id=p.id)), _btn(loc["btn_m_gear"], GearCb(id=p.id))],
         [_btn(loc["btn_m_route"], MCb(a="route", id=p.id)), _btn(loc["btn_trip"], TripCb(a="open", id=p.id))],
         bottom,
+        invite,
         [_btn(loc["btn_m_unsub" if subscribed else "btn_m_sub"], MCb(a="sub", id=p.id))],
     ]
     if reports is not None:
-        rows.insert(5, [_btn(loc("btn_reports", n=reports), RepCb(a="list", id=p.id))])
+        rows.insert(6, [_btn(loc("btn_reports", n=reports), RepCb(a="list", id=p.id))])
     if p.public:
         region = p.region if p.region in REGIONS else "community"
         rows.append([_btn(loc["btn_m_catalog_back"], MCb(a="reg", id=REGIONS.index(region)))])
@@ -600,3 +608,17 @@ def report_draft(lang: str, peak_id: int, tags: list[tuple[int, str]], mask: int
 
 def report_admin(lang: str, report_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[[_btn(locales.get(lang)["btn_rep_hide"], RepCb(a="hide", id=report_id))]])
+
+
+# ── поход в чате (inline-режим) ─────────────────────────────────────────────
+
+def hike(lang: str, key: str, open_url: str | None) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    rows = [
+        [_btn(loc["btn_hike_go"], HikeCb(a="go", k=key, l=loc.code)),
+         _btn(loc["btn_hike_maybe"], HikeCb(a="maybe", k=key, l=loc.code))],
+        [_btn(loc["btn_hike_refresh"], HikeCb(a="refresh", k=key, l=loc.code))],
+    ]
+    if open_url:
+        rows.append([InlineKeyboardButton(text=loc["btn_hike_open"], url=open_url)])
+    return InlineKeyboardMarkup(inline_keyboard=rows)

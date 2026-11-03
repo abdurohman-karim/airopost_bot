@@ -670,3 +670,47 @@ def sos_share_text(lang: str, lat: float, lon: float, ele: float | None) -> str:
 
 def share_text(lang: str, p: Peak) -> str:
     return locales.get(lang)("m_share_text", name=p.name, ele=p.ele)
+
+
+# ── поход в чате ────────────────────────────────────────────────────────────
+
+def _names(people: list[tuple[int, str, str]], status: str) -> list[str]:
+    return [escape(name) for _, name, s in people if s == status]
+
+
+def hike_card(lang: str, p: Peak, fc: MountainForecast | None, people: list[tuple[int, str, str]], bot_name: str) -> str:
+    """Карточка в любом чате: прогноз на вершине и кто идёт. Обновляется по кнопкам под ней."""
+    loc = locales.get(lang)
+    lines = [loc("hike_title", name=escape(p.name), ele=p.ele)]
+    if fc:
+        c = fc.summit(fc.hour())
+        icon, desc = weather(loc, c.weather_code, c.is_day)
+        lines.append(loc("hike_now", icon=icon, t=t(c.temp), feels=t(c.feels), v=loc.num(c.wind)))
+        today = fc.local_now().date()
+        days = fc.outlook()[:4]
+        if days:
+            lines += ["", loc["m_windows"], *(_day_line(loc, o, today) for o in days)]
+    else:
+        lines.append(loc["hike_no_fc"])
+    go, maybe = _names(people, "go"), _names(people, "maybe")
+    lines += ["", loc["hike_who"]]
+    if go:
+        lines.append(loc("hike_go", n=len(go), names=", ".join(go)))
+    if maybe:
+        lines.append(loc("hike_maybe", n=len(maybe), names=", ".join(maybe)))
+    if not go and not maybe:
+        lines.append(loc["hike_nobody"])
+    if fc:
+        now = fc.local_now()
+        lines += ["", loc("hike_footer", time=hm(now), bot=bot_name)]
+    return "\n".join(lines)
+
+
+def hike_description(lang: str, fc: MountainForecast | None) -> str:
+    """Подпись в списке inline-результатов: погода сейчас и ближайшие дни одной строкой."""
+    loc = locales.get(lang)
+    if not fc:
+        return loc["hike_no_fc"]
+    c = fc.summit(fc.hour())
+    days = " ".join(f"{loc['weekdays'][o.day.weekday()]}{RATING_ICON[o.rating]}" for o in fc.outlook()[:4])
+    return f"{t(c.temp)} · 💨{loc.num(c.wind)} {loc['ms']} · {days}"
