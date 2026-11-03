@@ -178,6 +178,12 @@ async def on_mountain(
         await callback.answer()
         await _show_weekend(bot, db, mountains, chat_id, lang, message_id)
         return
+    if action == "safety":
+        topic = callback_data.p - 1 if 1 <= callback_data.p <= len(kb.SAFETY_TOPICS) else None
+        text = loc["sf_title"] + "\n\n" + (loc["sf_" + kb.SAFETY_TOPICS[topic]] if topic is not None else loc["sf_intro"])
+        await ui.show(bot, db, chat_id, text, kb.safety(lang, topic), message_id)
+        await callback.answer()
+        return
     if action == "sos":
         await callback.answer()
         await open_sos(bot, state, db, weather, chat_id, callback_data.id, message_id)

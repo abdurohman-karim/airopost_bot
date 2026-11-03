@@ -859,3 +859,20 @@ STRINGS.update({
     'near_error': "😕 The map service isn't responding. Try again in a couple of minutes.",
     'near_note': '<i>Springs can dry up by late summer — check recent trail condition reports.</i>',
 })
+
+# ── памятка по безопасности ──
+STRINGS.update({
+    'btn_safety': '📖 Safety',
+    'sf_btn_altitude': '🏔 Altitude sickness',
+    'sf_btn_storm': '⛈ Thunderstorms',
+    'sf_btn_cold': '🥶 Hypothermia',
+    'sf_btn_lost': "🧭 If you're lost",
+    'sf_btn_avalanche': '🏔 Avalanches',
+    'sf_title': '📖 <b>Mountain safety</b>',
+    'sf_intro': 'Short rules worth knowing before you go. Pick a topic 👇\n\n<i>This is no substitute for training and experience. In danger — 🆘 SOS and 112 right away.</i>',
+    'sf_altitude': "🏔 <b>Altitude sickness</b>\n\nUsually above 2500 m when you gain height fast — even fit people get it.\n\n<b>Signs:</b> headache together with nausea, weakness, dizziness, poor sleep.\n\n<b>Rules</b>\n• Above 3000 m raise your sleeping altitude by no more than 300–500 m a day\n• “Climb high, sleep low”: higher by day, lower at night\n• Drink water, don't rush, no alcohol\n• Symptoms — stop going up; not gone after a night — go down\n\n🚨 <b>Go down at once and call 112:</b> confusion, unsteady walk, breathlessness at rest, cough with frothy sputum. Descending even 300–500 m often saves lives.",
+    'sf_storm': "⛈ <b>Thunderstorms in the mountains</b>\n\n• Storms usually build after noon — start early and be on the summit before lunch. The bot shows when storms start in the climbing windows\n• Heard thunder — you're already within striking distance: leave the summit, ridge and open slopes\n• Don't shelter under a lone tree, by a protruding rock or in a shallow niche; keep away from water, metal cables and railings\n• Nowhere to hide — crouch on your pack or mat, feet together, head down\n• As a group — 15 m or more apart, so one strike can't hit everyone",
+    'sf_cold': "🥶 <b>Hypothermia</b>\n\nWind and wet clothes chill you faster than frost — watch “feels like”, not just the temperature.\n\n<b>Signs:</b> strong shivering, clumsy fingers, slowness, stumbling. If shivering suddenly stops while still cold — that's dangerous.\n\n<b>What to do</b>\n• Get out of the wind, remove wet layers, put on dry clothes, a down jacket and a hat\n• Insulate from the ground — mat, pack; cover with a sleeping bag or emergency blanket\n• Warm sweet drink if the person is conscious and can swallow\n• Don't rub with snow, no alcohol; serious condition — 112",
+    'sf_lost': "🧭 <b>If you're lost</b>\n\n• Stop and calm down. Don't descend blindly into a gorge — there are often cliffs and waterfalls\n• Go back to where you last knew the way; stick to trails and ridges\n• Open 🆘 SOS — it has your coordinates for rescuers and the 112 number\n• Save battery: minimum brightness, turn off what you don't need\n• Getting dark — don't cross unfamiliar slopes at night: keep warm and wait for morning or help\n• Set a ⏱ check-in deadline before you go — then you'll be missed even if you can't call",
+    'sf_avalanche': "🏔 <b>Avalanches</b>\n\n• Most dangerous after 30 cm+ of snowfall, in strong wind and during warming\n• Most avalanches release on 30–45° slopes; avoid gullies, lee slopes with wind-loaded snow and areas below cornices\n• Cross dangerous spots one at a time while the others wait somewhere safe and watch\n• Everyone carries a transceiver, shovel and probe — and knows how to use them\n• Check the avalanche indicator on the peak page and official bulletins — the bot's indicator is a weather-based estimate, not an expert forecast",
+})

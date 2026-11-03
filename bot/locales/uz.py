@@ -869,3 +869,20 @@ STRINGS.update({
     'near_error': '😕 Xarita xizmati hozir javob bermayapti. Bir-ikki daqiqadan soʻng urinib koʻring.',
     'near_note': '<i>Buloqlar yoz oxiriga kelib qurib qolishi mumkin — soʻqmoqdagi holat haqidagi yangi hisobotlarni koʻring.</i>',
 })
+
+# ── памятка по безопасности ──
+STRINGS.update({
+    'btn_safety': '📖 Xavfsizlik',
+    'sf_btn_altitude': '🏔 Togʻ kasalligi',
+    'sf_btn_storm': '⛈ Togʻda momaqaldiroq',
+    'sf_btn_cold': '🥶 Haddan tashqari sovqotish',
+    'sf_btn_lost': '🧭 Adashib qolsangiz',
+    'sf_btn_avalanche': '🏔 Qor koʻchkilari',
+    'sf_title': '📖 <b>Togʻda xavfsizlik</b>',
+    'sf_intro': 'Yoʻlga chiqishdan oldin bilish kerak boʻlgan qisqa qoidalar. Mavzuni tanlang 👇\n\n<i>Bu oʻqish va tajribaning oʻrnini bosmaydi. Xavfli vaziyatda — darhol 🆘 SOS va 112.</i>',
+    'sf_altitude': '🏔 <b>Togʻ kasalligi</b>\n\nOdatda 2500 m dan yuqorida, balandlik tez olinganda boʻladi — hatto chiniqqan odamlarda ham.\n\n<b>Belgilari:</b> bosh ogʻrigʻi bilan birga koʻngil aynishi, holsizlik, bosh aylanishi, yomon uyqu.\n\n<b>Qoidalar</b>\n• 3000 m dan yuqorida tunash joyini sutkasiga 300–500 m dan koʻp koʻtarmang\n• «Yuqorida yur — pastda uxla»: kunduzi yuqoriroq, tunda pastroqda\n• Suv iching, shoshilmang, spirtli ichimliksiz\n• Belgilar boʻlsa — yuqoriga chiqmang; bir kechada oʻtmasa — pastga\n\n🚨 <b>Darhol pastga va 112 ga qoʻngʻiroq:</b> esankirash, chayqalib yurish, tinch holatda nafas qisishi, koʻpikli balgʻamli yoʻtal. 300–500 m pastga tushish ham koʻpincha qutqaradi.',
+    'sf_storm': '⛈ <b>Togʻda momaqaldiroq</b>\n\n• Momaqaldiroq koʻpincha tushdan keyin boʻladi — erta chiqing va tushgacha choʻqqida boʻling. Momaqaldiroq boshlanish vaqtini bot chiqish oynalarida koʻrsatadi\n• Momaqaldiroq ovozini eshitdingizmi — siz allaqachon zarba zonasidasiz: choʻqqi, qir va ochiq yonbagʻirdan keting\n• Yolgʻiz daraxt ostida, chiqib turgan qoya yonida va sayoz chuqurchada yashirinmang; suv, metall arqon va panjaralardan uzoqroq turing\n• Yashirinadigan joy yoʻq — ryukzak yoki gilamchaga choʻnqayib oʻtiring, oyoqlar birga, bosh pastda\n• Guruh boʻlib — bir-biringizdan 15 m va undan uzoqroqda, zarba hammaga tegmasligi uchun',
+    'sf_cold': '🥶 <b>Haddan tashqari sovqotish</b>\n\nShamol va hoʻl kiyim sovuqdan ham tezroq sovitadi — faqat haroratga emas, «his qilinishi»ga qarang.\n\n<b>Belgilari:</b> kuchli titrash, qoʻllar qovushmasligi, sustlik, qoqilish. Sovuqda titrash birdan toʻxtasa — bu xavfli.\n\n<b>Nima qilish kerak</b>\n• Shamoldan panalash, hoʻl kiyimni yechib, quruq kiyim, pat kurtka va shapka kiyish\n• Yerdan ajratish — gilamcha, ryukzak; uxlash qopi yoki qutqaruv adyoli bilan yopish\n• Odam hushida va yuta olsa — iliq shirin ichimlik\n• Qor bilan ishqalamang, spirtli ichimlik bermang; ogʻir holat — 112',
+    'sf_lost': '🧭 <b>Adashib qolsangiz</b>\n\n• Toʻxtang va tinchlaning. Daraga tavakkal tushmang — u yerda koʻpincha jarliklar va sharsharalar boʻladi\n• Yoʻlni aniq bilgan joyingizga qayting; soʻqmoq va qirlardan yuring\n• 🆘 SOS ni oching — u yerda qutqaruvchilar uchun koordinatalaringiz va 112 raqami bor\n• Quvvatni tejang: yorqinlikni minimumga tushiring, keraksizini oʻchiring\n• Qorongʻi tushyaptimi — notanish yonbagʻirdan qorongʻida yurmang: isining va tong yoki yordamni kuting\n• Yoʻlga chiqishdan oldin ⏱ nazorat muddatini qoʻying — qoʻngʻiroq qila olmasangiz ham sizni eslashadi',
+    'sf_avalanche': '🏔 <b>Qor koʻchkilari</b>\n\n• Eng xavflisi — 30 sm dan koʻp qor yoqqandan keyin, kuchli shamol va isishda\n• Koʻchkilarning aksariyati 30–45° yonbagʻirlardan tushadi; kuluarlar, qor uyumlari bor shamolga teskari yonbagʻirlar va qor kornizlari ostidagi joylardan qoching\n• Xavfli joylardan — bittadan, qolganlar xavfsiz joyda kutib kuzatadi\n• Har kimda — koʻchki datchigi, belkurak va zond, va hamma ulardan foydalanishni biladi\n• Choʻqqi sahifasidagi koʻchki xavfi koʻrsatkichini va rasmiy byulletenlarni koʻring — bot koʻrsatkichi ob-havo boʻyicha baho, mutaxassislar prognozi emas',
+})

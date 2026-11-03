@@ -250,7 +250,7 @@ def mountains(lang: str, peaks: list, can_add: bool, catalog_count: int = 0, tri
     if can_add:
         rows.append([_btn(loc["btn_m_add"], MCb(a="add"))])
     rows.append([_btn(loc["btn_ski"], SpotCb(a="ski")), _btn(loc["btn_passes"], SpotCb(a="passes"))])
-    rows.append([_btn(loc["btn_routes"], RouteCb(a="list"))])
+    rows.append([_btn(loc["btn_routes"], RouteCb(a="list")), _btn(loc["btn_safety"], MCb(a="safety"))])
     rows.append([_btn(loc["btn_sos"], MCb(a="sos"))])
     return InlineKeyboardMarkup(inline_keyboard=[*rows, _back(lang)])
 
@@ -624,3 +624,16 @@ def hike(lang: str, key: str, open_url: str | None) -> InlineKeyboardMarkup:
     if open_url:
         rows.append([InlineKeyboardButton(text=loc["btn_hike_open"], url=open_url)])
     return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+# ── памятка по безопасности ─────────────────────────────────────────────────
+
+SAFETY_TOPICS = ("altitude", "storm", "cold", "lost", "avalanche")
+
+
+def safety(lang: str, topic: int | None = None) -> InlineKeyboardMarkup:
+    loc = locales.get(lang)
+    rows = [[_btn(("• " if i == topic else "") + loc["sf_btn_" + key], MCb(a="safety", p=i + 1))]
+            for i, key in enumerate(SAFETY_TOPICS)]
+    rows.append([_btn(loc["btn_sos"], MCb(a="sos"))])
+    return InlineKeyboardMarkup(inline_keyboard=[*rows, _to_list(lang)])
