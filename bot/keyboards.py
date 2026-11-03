@@ -314,8 +314,10 @@ def peak(
         invite,
         [_btn(loc["btn_m_unsub" if subscribed else "btn_m_sub"], MCb(a="sub", id=p.id))],
     ]
+    extras = [_btn(loc["btn_near"], MCb(a="near", id=p.id))]
     if reports is not None:
-        rows.insert(6, [_btn(loc("btn_reports", n=reports), RepCb(a="list", id=p.id))])
+        extras.insert(0, _btn(loc("btn_reports", n=reports), RepCb(a="list", id=p.id)))
+    rows.insert(6, extras)
     if p.public:
         region = p.region if p.region in REGIONS else "community"
         rows.append([_btn(loc["btn_m_catalog_back"], MCb(a="reg", id=REGIONS.index(region)))])

@@ -7,8 +7,10 @@
 """
 from __future__ import annotations
 
+import asyncio
 import math
 import re
+import time
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
@@ -16,6 +18,11 @@ from bot.services.models import WeatherError, get_tz, rows
 from bot.services.weather import FORECAST_URL, FRESH_TTL, GEO_TTL, WEATHER_TTL, WeatherService
 
 ELEVATION_URL = "https://api.open-meteo.com/v1/elevation"
+# Overpass бывает перегружен — пробуем зеркало, а затем поиск по типам объектов в Nominatim
+OVERPASS_URLS = ("https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter")
+OVERPASS_TIMEOUT = 10
+OVERPASS_PAUSE = 15 * 60      # не ответил — столько времени сразу идём в Nominatim
+NEAR_KM = 6
 NOMINATIM_SEARCH_URL = "https://nominatim.openstreetmap.org/search"
 
 LEVELS = [1000, 925, 850, 800, 700, 600, 500, 400, 300]
@@ -437,6 +444,48 @@ class SnowReport:
     reasons: list[str]               # ключи локали
 
 
+# Что рядом с вершиной: тип → (условия Overpass, фраза для поиска в Nominatim)
+POI_KINDS = {
+    "spring": ('[natural=spring]', "spring"),
+    "water": ('[amenity=drinking_water]', "drinking water"),
+    "hut": ('[tourism~"^(alpine_hut|wilderness_hut)$"]', "alpine hut"),
+    "shelter": ('[amenity=shelter]', "shelter"),
+    "camp": ('[tourism=camp_site]', "camp site"),
+    "pass": ('[mountain_pass=yes]', None),
+    "waterfall": ('[waterway=waterfall]', "waterfall"),
+    "lake": ('[natural=water][name]', None),
+}
+
+
+@dataclass
+class Poi:
+    kind: str
+    name: str | None
+    lat: float
+    lon: float
+    ele: float | None
+
+
+def _poi_kind(tags: dict) -> str | None:
+    if tags.get("mountain_pass") == "yes":
+        return "pass"
+    if tags.get("natural") == "spring":
+        return "spring"
+    if tags.get("amenity") == "drinking_water":
+        return "water"
+    if tags.get("tourism") in ("alpine_hut", "wilderness_hut"):
+        return "hut"
+    if tags.get("amenity") == "shelter":
+        return "shelter"
+    if tags.get("tourism") == "camp_site":
+        return "camp"
+    if tags.get("waterway") == "waterfall":
+        return "waterfall"
+    if tags.get("natural") == "water":
+        return "lake"
+    return None
+
+
 @dataclass
 class Here:
     """Приземная погода в точке, где стоит человек."""
@@ -466,6 +515,8 @@ def _parse_ele(value: str | None) -> float | None:
 class MountainService:
     def __init__(self, http: WeatherService) -> None:
         self._http = http
+        self._near: dict[tuple, tuple[float, list[Poi]]] = {}
+        self._overpass_down_until = 0.0
 
     async def forecast(self, lat: float, lon: float, ele: float, fresh: bool = False) -> MountainForecast:
         params = {
@@ -540,6 +591,74 @@ class MountainService:
             except WeatherError:
                 pass
         return results
+
+    async def nearby(self, lat: float, lon: float, lang: str, fallback: bool = True) -> list[Poi]:
+        """Родники, приюты, стоянки, перевалы, водопады и озёра в радиусе NEAR_KM из OpenStreetMap."""
+        key = (round(lat, 4), round(lon, 4), lang)
+        cached = self._near.get(key)
+        if cached and time.monotonic() - cached[0] < GEO_TTL:
+            return cached[1]
+        pois = await self._overpass(lat, lon, lang) if time.monotonic() >= self._overpass_down_until else None
+        if pois is None:
+            self._overpass_down_until = time.monotonic() + OVERPASS_PAUSE
+            if not fallback:
+                raise WeatherError("overpass unavailable")
+            pois = await self._nearby_nominatim(lat, lon, lang)
+        self._near[key] = (time.monotonic(), pois)
+        return pois
+
+    async def _overpass(self, lat: float, lon: float, lang: str) -> list[Poi] | None:
+        """Все зеркала Overpass параллельно — берём первый удачный ответ."""
+        around = f"(around:{NEAR_KM * 1000},{lat:.5f},{lon:.5f})"
+        parts = [f"node{around}{sel};" if kind == "pass" else f"nwr{around}{sel};" for kind, (sel, _) in POI_KINDS.items()]
+        query = f"[out:json][timeout:{OVERPASS_TIMEOUT}];({''.join(parts)});out center tags 150;"
+        tasks = [
+            asyncio.create_task(self._http.get_json(url, {"data": query}, GEO_TTL, timeout=OVERPASS_TIMEOUT + 2))
+            for url in OVERPASS_URLS
+        ]
+        data = None
+        try:
+            for done in asyncio.as_completed(tasks):
+                try:
+                    data = await done
+                    break
+                except WeatherError:
+                    continue
+        finally:
+            for task in tasks:
+                task.cancel()
+        if not isinstance(data, dict):
+            return None
+        pois = []
+        for el in data.get("elements", []):
+            tags = el.get("tags") or {}
+            kind = _poi_kind(tags)
+            point = el if "lat" in el else el.get("center") or {}
+            if kind and "lat" in point:
+                name = tags.get(f"name:{lang}") or tags.get("name")
+                pois.append(Poi(kind, name, point["lat"], point["lon"], _parse_ele(tags.get("ele"))))
+        return pois
+
+    async def _nearby_nominatim(self, lat: float, lon: float, lang: str) -> list[Poi]:
+        d_lat = NEAR_KM / 111
+        d_lon = d_lat / max(math.cos(math.radians(lat)), 0.1)
+        pois = []
+        for kind, (_, phrase) in POI_KINDS.items():
+            if not phrase:
+                continue
+            params = {
+                "q": phrase, "format": "jsonv2", "extratags": "1", "limit": "10", "bounded": "1",
+                "viewbox": f"{lon - d_lon:.5f},{lat + d_lat:.5f},{lon + d_lon:.5f},{lat - d_lat:.5f}",
+                "accept-language": f"{lang},en",
+            }
+            try:
+                data = await self._http.nominatim(NOMINATIM_SEARCH_URL, params)
+            except WeatherError:
+                continue
+            for item in data if isinstance(data, list) else []:
+                pois.append(Poi(kind, item.get("name") or None, float(item["lat"]), float(item["lon"]),
+                                _parse_ele((item.get("extratags") or {}).get("ele"))))
+        return pois
 
     async def nearest_peak(self, lat: float, lon: float, lang: str, radius_km: float = 0.7) -> PeakResult | None:
         """Ближайшая вершина из OpenStreetMap к метке на карте: точные название и высота."""

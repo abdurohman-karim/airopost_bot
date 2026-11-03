@@ -80,7 +80,7 @@ class WeatherService:
         if self._session:
             await self._session.close()
 
-    async def get_json(self, url: str, params: dict[str, str], ttl: float) -> dict | list:
+    async def get_json(self, url: str, params: dict[str, str], ttl: float, timeout: float | None = None) -> dict | list:
         """GET с кэшем: повторный запрос с теми же параметрами в течение ttl секунд берётся из памяти."""
         key = f"{url}?{urlencode(sorted(params.items()))}"
         now = time.monotonic()
@@ -89,7 +89,8 @@ class WeatherService:
             return cached[1]
         assert self._session, "WeatherService.start() не вызван"
         try:
-            async with self._session.get(url, params=params) as resp:
+            request_timeout = aiohttp.ClientTimeout(total=timeout) if timeout else None
+            async with self._session.get(url, params=params, timeout=request_timeout) as resp:
                 if resp.status != 200:
                     raise WeatherError(f"{url}: HTTP {resp.status}")
                 data = await resp.json(content_type=None)

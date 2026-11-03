@@ -837,3 +837,28 @@ STRINGS.update({
     'region_kyrgyz': 'Тянь-Шань (Кыргызстан)',
     'region_kazakhstan': 'Казахстан',
 })
+
+# ── что рядом ──
+STRINGS.update({
+    'btn_near': '🧭 Что рядом',
+    'near_loading': '🔎 Ищу родники, приюты и стоянки рядом…',
+    'near_title': '🧭 <b>Что рядом</b> · {name}',
+    'near_intro': '<i>В радиусе {km} км от вершины, по данным OpenStreetMap. Нажмите на название — откроется карта.</i>',
+    'near_water': 'Вода',
+    'near_huts': 'Приюты и укрытия',
+    'near_camp': 'Стоянки',
+    'near_pass': 'Перевалы',
+    'near_waterfall': 'Водопады',
+    'near_lake': 'Озёра',
+    'poi_spring': 'родник',
+    'poi_water': 'питьевая вода',
+    'poi_hut': 'приют',
+    'poi_shelter': 'укрытие',
+    'poi_camp': 'стоянка',
+    'poi_pass': 'перевал',
+    'poi_waterfall': 'водопад',
+    'poi_lake': 'озеро',
+    'near_empty': 'Рядом в OpenStreetMap ничего не отмечено.',
+    'near_error': '😕 Сервис карт сейчас не отвечает. Попробуйте через пару минут.',
+    'near_note': '<i>Родники к концу лета могут пересыхать — смотрите свежие отчёты об условиях на тропе.</i>',
+})

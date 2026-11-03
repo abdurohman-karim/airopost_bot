@@ -206,6 +206,15 @@ async def on_mountain(
         text, markup = await _peak_screen(db, chat_id, action, lang, peak, mountains, admins, callback_data.p, fresh)
         await ui.show(bot, db, chat_id, text, markup, message_id)
         toast = loc["t_refreshed"] if fresh and text != texts.error(lang) else None
+    elif action == "near":
+        await callback.answer()
+        await ui.show(bot, db, chat_id, loc["near_loading"], None, message_id)
+        try:
+            pois = await mountains.nearby(peak.lat, peak.lon, lang)
+        except WeatherError:
+            pois = None
+        await ui.show(bot, db, chat_id, mt.nearby(lang, peak, pois), kb.peak_back(lang, peak.id), message_id)
+        return
     elif action == "route":
         await ui.show(bot, db, chat_id, mt.route_prompt(lang, peak), kb.peak_back(lang, peak.id), message_id)
         await ui.enter_location_mode(

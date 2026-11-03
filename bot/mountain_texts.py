@@ -714,3 +714,49 @@ def hike_description(lang: str, fc: MountainForecast | None) -> str:
     c = fc.summit(fc.hour())
     days = " ".join(f"{loc['weekdays'][o.day.weekday()]}{RATING_ICON[o.rating]}" for o in fc.outlook()[:4])
     return f"{t(c.temp)} · 💨{loc.num(c.wind)} {loc['ms']} · {days}"
+
+
+
+# ── что рядом ───────────────────────────────────────────────────────────────
+
+POI_GROUPS = (("water", ("spring", "water"), "💧"), ("huts", ("hut", "shelter"), "🏠"), ("camp", ("camp",), "⛺"),
+              ("pass", ("pass",), "🛤"), ("waterfall", ("waterfall",), "🌊"), ("lake", ("lake",), "🏞"))
+POI_PER_GROUP = 5
+
+
+def _bearing(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    p1, p2, dl = math.radians(lat1), math.radians(lat2), math.radians(lon2 - lon1)
+    x = math.sin(dl) * math.cos(p2)
+    y = math.cos(p1) * math.sin(p2) - math.sin(p1) * math.cos(p2) * math.cos(dl)
+    return (math.degrees(math.atan2(x, y)) + 360) % 360
+
+
+def nearby(lang: str, p: Peak, pois: list | None) -> str:
+    loc = locales.get(lang)
+    lines = [loc("near_title", name=escape(p.name)), loc("near_intro", km=6), ""]
+    if pois is None:
+        return "\n".join(lines + [loc["near_error"]])
+    seen = set()
+    for key, kinds, icon in POI_GROUPS:
+        found = sorted(
+            ((distance_km(p.lat, p.lon, x.lat, x.lon), x) for x in pois if x.kind in kinds),
+            key=lambda pair: (pair[1].name is None, pair[0]),
+        )
+        rows = []
+        for km, x in found:
+            spot = (round(x.lat, 4), round(x.lon, 4))
+            if spot in seen:
+                continue
+            seen.add(spot)
+            name = escape(x.name) if x.name else loc["poi_" + x.kind]
+            where = f"{loc.num(km, 1)} {loc['km']} {direction(loc, _bearing(p.lat, p.lon, x.lat, x.lon))[0]}"
+            ele = f" · {round(x.ele)} {loc['m']}" if x.ele else ""
+            rows.append(f'• <a href="{map_url(x.lat, x.lon)}">{name}</a> · {where}{ele}')
+            if len(rows) >= POI_PER_GROUP:
+                break
+        if rows:
+            lines += [f"<b>{icon} {loc['near_' + key]}</b>", *rows, ""]
+    if len(lines) == 3:
+        lines.append(loc["near_empty"])
+    lines.append(loc["near_note"])
+    return "\n".join(lines)

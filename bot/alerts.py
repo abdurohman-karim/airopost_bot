@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -110,6 +111,10 @@ async def run(
             await travel(bot, db, weather)
         except Exception:
             log.exception("Ошибка переключения сводки на поездку")
+        try:
+            await warm_nearby(db, mountains)
+        except Exception:
+            log.exception("Ошибка прогрева «Что рядом»")
         await asyncio.sleep(CHECK_SECONDS)
 
 
@@ -265,6 +270,26 @@ async def powder(bot: Bot, db: Database, mountains: MountainService, storage: Ba
             log.warning("Оповещение о снеге для %s не отправлено: %s", user.user_id, e)
             continue
         await db.ski_alerted(user.user_id, resort.key, now.date().isoformat())
+
+
+WARM_EVERY = 24 * 3600
+_warmed_at = 0.0
+
+
+async def warm_nearby(db: Database, mountains: MountainService) -> None:
+    """Раз в сутки заранее загружаем «Что рядом» для вершин каталога — Overpass бывает медленным.
+    Только Overpass, без запасного Nominatim: прогрев не должен нагружать его."""
+    global _warmed_at
+    if time.monotonic() - _warmed_at < WARM_EVERY and _warmed_at:
+        return
+    _warmed_at = time.monotonic()
+    for peak in await db.catalog("ru"):
+        try:
+            await mountains.nearby(peak.lat, peak.lon, "ru", fallback=False)
+        except WeatherError:
+            log.info("«Что рядом» не прогрето: Overpass не отвечает")
+            return
+        await asyncio.sleep(2)
 
 
 TRAVEL_FROM_HOUR = 6          # сводку переключаем утром, а не в полночь — и сообщаем об этом не ночью

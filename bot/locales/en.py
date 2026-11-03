@@ -834,3 +834,28 @@ STRINGS.update({
     'region_kyrgyz': 'Tian Shan (Kyrgyzstan)',
     'region_kazakhstan': 'Kazakhstan',
 })
+
+# ── что рядом ──
+STRINGS.update({
+    'btn_near': "🧭 What's nearby",
+    'near_loading': '🔎 Looking for springs, huts and campsites nearby…',
+    'near_title': "🧭 <b>What's nearby</b> · {name}",
+    'near_intro': '<i>Within {km} km of the summit, from OpenStreetMap. Tap a name to open the map.</i>',
+    'near_water': 'Water',
+    'near_huts': 'Huts and shelters',
+    'near_camp': 'Campsites',
+    'near_pass': 'Passes',
+    'near_waterfall': 'Waterfalls',
+    'near_lake': 'Lakes',
+    'poi_spring': 'spring',
+    'poi_water': 'drinking water',
+    'poi_hut': 'hut',
+    'poi_shelter': 'shelter',
+    'poi_camp': 'campsite',
+    'poi_pass': 'pass',
+    'poi_waterfall': 'waterfall',
+    'poi_lake': 'lake',
+    'near_empty': 'Nothing is mapped nearby in OpenStreetMap.',
+    'near_error': "😕 The map service isn't responding. Try again in a couple of minutes.",
+    'near_note': '<i>Springs can dry up by late summer — check recent trail condition reports.</i>',
+})

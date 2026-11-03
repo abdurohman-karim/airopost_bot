@@ -844,3 +844,28 @@ STRINGS.update({
     'region_kyrgyz': 'Tyan-Shan (Qirgʻiziston)',
     'region_kazakhstan': 'Qozogʻiston',
 })
+
+# ── что рядом ──
+STRINGS.update({
+    'btn_near': '🧭 Atrofda nima bor',
+    'near_loading': '🔎 Atrofdagi buloqlar, boshpanalar va qoʻnalg‘alar qidirilmoqda…',
+    'near_title': '🧭 <b>Atrofda nima bor</b> · {name}',
+    'near_intro': '<i>Choʻqqidan {km} km radiusda, OpenStreetMap maʼlumotlari. Nomini bossangiz, xarita ochiladi.</i>',
+    'near_water': 'Suv',
+    'near_huts': 'Boshpanalar',
+    'near_camp': 'Qoʻnalg‘alar',
+    'near_pass': 'Dovonlar',
+    'near_waterfall': 'Sharsharalar',
+    'near_lake': 'Koʻllar',
+    'poi_spring': 'buloq',
+    'poi_water': 'ichimlik suvi',
+    'poi_hut': 'boshpana uy',
+    'poi_shelter': 'boshpana',
+    'poi_camp': 'qoʻnalg‘a',
+    'poi_pass': 'dovon',
+    'poi_waterfall': 'sharshara',
+    'poi_lake': 'koʻl',
+    'near_empty': 'OpenStreetMap’da atrofda hech narsa belgilanmagan.',
+    'near_error': '😕 Xarita xizmati hozir javob bermayapti. Bir-ikki daqiqadan soʻng urinib koʻring.',
+    'near_note': '<i>Buloqlar yoz oxiriga kelib qurib qolishi mumkin — soʻqmoqdagi holat haqidagi yangi hisobotlarni koʻring.</i>',
+})
