@@ -1,13 +1,15 @@
 import asyncio
+import logging
 import re
 import time
 
 from aiogram import Bot, F, Router
 from aiogram.enums import ChatType
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
 
-from bot import gear, links, locales, texts, timeutil, ui, weekend
+from bot import gear, links, locales, texts, timeutil, ui, weekend, widgets
 from bot import keyboards as kb
 from bot import mountain_texts as mt
 from bot import report_texts as rpt
@@ -20,6 +22,7 @@ from bot.services import MountainService, PeakResult, WeatherError, WeatherServi
 from bot.states import Form
 
 router = Router(name="mountains")
+log = logging.getLogger(__name__)
 
 _ELEVATION_RE = re.compile(r"^\s*(\d{2,4}(?:[.,]\d+)?)\s*(?:m|м|metr|meters?)?\s*$", re.IGNORECASE)
 SOS_FRESH_HOURS = 12      # точка с маршрута старше — для спасателей уже не годится
@@ -212,6 +215,10 @@ async def on_mountain(
         text, markup = await _peak_screen(db, chat_id, action, lang, peak, mountains, admins, callback_data.p, fresh)
         await ui.show(bot, db, chat_id, text, markup, message_id)
         toast = loc["t_refreshed"] if fresh and text != texts.error(lang) else None
+    elif action == "widget":
+        await callback.answer()
+        await _send_widget(bot, db, mountains, chat_id, lang, peak, message_id)
+        return
     elif action == "near":
         await callback.answer()
         await ui.show(bot, db, chat_id, loc["near_loading"], None, message_id)
@@ -255,6 +262,26 @@ async def on_mountain(
         await _toggle_sub(callback, bot, db, mountains, admins, peak, lang)
         return
     await callback.answer(toast)
+
+
+async def _send_widget(
+    bot: Bot, db: Database, mountains: MountainService, chat_id: int, lang: str, peak: Peak, message_id: int | None,
+) -> None:
+    try:
+        fc = await mountains.forecast(peak.lat, peak.lon, peak.ele)
+    except WeatherError:
+        await ui.show(bot, db, chat_id, texts.error(lang), kb.peak_error(lang, peak.id), message_id)
+        return
+    try:
+        await ui.send_widget(
+            bot, db, chat_id, widgets.forecast_html(lang), widgets.forecast_data(peak.id, fc, lang),
+            widgets.caption(lang, peak), kb.peak_back(lang, peak.id),
+        )
+    except TelegramBadRequest as e:
+        # Виджеты новые: если Telegram их не принял — те же окна текстом, чтобы кнопка не была пустой
+        log.warning("Виджет прогноза не отправлен: %s", e.message)
+        text = locales.get(lang)["w_unsupported"] + "\n\n" + mt.outlook(lang, peak, fc)
+        await ui.show(bot, db, chat_id, text, kb.peak_back(lang, peak.id), message_id)
 
 
 async def _toggle_sub(

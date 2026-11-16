@@ -95,6 +95,28 @@ async def send_fresh(
     return message.message_id
 
 
+async def send_widget(
+    bot: Bot,
+    db: Database,
+    chat_id: int,
+    html: str,
+    chat_data: str,
+    caption: str,
+    markup: InlineKeyboardMarkup | None = None,
+) -> int:
+    """Виджет становится живым сообщением, как экран из send_fresh. Текст виджета не редактируется,
+    поэтому следующий экран (show) не сможет его изменить и сам заменит его новым сообщением."""
+    user = await db.get_user(chat_id)
+    message = await bot.send_widget(
+        chat_id, html, chat_data=chat_data, caption=caption, show_caption_above_media=True,
+        allow_queries=True, reply_markup=markup,
+    )
+    if user.menu_msg_id and user.menu_msg_id != message.message_id:
+        await delete_message(bot, chat_id, user.menu_msg_id)
+    await db.update(chat_id, menu_msg_id=message.message_id)
+    return message.message_id
+
+
 async def enter_location_mode(
     bot: Bot,
     state: FSMContext,

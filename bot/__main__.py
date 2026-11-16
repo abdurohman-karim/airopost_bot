@@ -57,6 +57,7 @@ async def main() -> None:
     dp.message.outer_middleware(UserMiddleware(db))
     dp.callback_query.outer_middleware(UserMiddleware(db))
     dp.inline_query.outer_middleware(UserMiddleware(db))
+    dp.widget_query.outer_middleware(UserMiddleware(db))
     dp.include_routers(*handlers.routers())
 
     await set_commands(bot)

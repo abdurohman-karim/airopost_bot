@@ -21,8 +21,9 @@ run "DIR=$DIR SERVICE=$SERVICE bash -s" <<'REMOTE'
 set -euo pipefail
 cd "$DIR"
 
-if ! python3 -c 'import sys; sys.exit(sys.version_info < (3, 10))'; then
-    echo ">>> Нужен Python 3.10+, на сервере $(python3 --version 2>&1)"
+# aiogram 3.32+ (виджеты в сообщениях) требует Python 3.11
+if ! python3 -c 'import sys; sys.exit(sys.version_info < (3, 11))'; then
+    echo ">>> Нужен Python 3.11+, на сервере $(python3 --version 2>&1)"
     exit 1
 fi
 

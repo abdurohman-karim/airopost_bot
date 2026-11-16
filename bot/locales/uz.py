@@ -886,3 +886,17 @@ STRINGS.update({
     'sf_lost': '🧭 <b>Adashib qolsangiz</b>\n\n• Toʻxtang va tinchlaning. Daraga tavakkal tushmang — u yerda koʻpincha jarliklar va sharsharalar boʻladi\n• Yoʻlni aniq bilgan joyingizga qayting; soʻqmoq va qirlardan yuring\n• 🆘 SOS ni oching — u yerda qutqaruvchilar uchun koordinatalaringiz va 112 raqami bor\n• Quvvatni tejang: yorqinlikni minimumga tushiring, keraksizini oʻchiring\n• Qorongʻi tushyaptimi — notanish yonbagʻirdan qorongʻida yurmang: isining va tong yoki yordamni kuting\n• Yoʻlga chiqishdan oldin ⏱ nazorat muddatini qoʻying — qoʻngʻiroq qila olmasangiz ham sizni eslashadi',
     'sf_avalanche': '🏔 <b>Qor koʻchkilari</b>\n\n• Eng xavflisi — 30 sm dan koʻp qor yoqqandan keyin, kuchli shamol va isishda\n• Koʻchkilarning aksariyati 30–45° yonbagʻirlardan tushadi; kuluarlar, qor uyumlari bor shamolga teskari yonbagʻirlar va qor kornizlari ostidagi joylardan qoching\n• Xavfli joylardan — bittadan, qolganlar xavfsiz joyda kutib kuzatadi\n• Har kimda — koʻchki datchigi, belkurak va zond, va hamma ulardan foydalanishni biladi\n• Choʻqqi sahifasidagi koʻchki xavfi koʻrsatkichini va rasmiy byulletenlarni koʻring — bot koʻrsatkichi ob-havo boʻyicha baho, mutaxassislar prognozi emas',
 })
+
+# ── prognoz vidjeti ──
+STRINGS.update({
+    'btn_m_widget': '📈 Kunlar va soatlar boʻyicha prognoz',
+    'w_hint': 'Kun yoki soatni bosing — batafsil koʻrsataman.',
+    'w_air': 'havo',
+    'w_feels': 'his qilinishi',
+    'w_updated': 'Maʼlumot',
+    'w_refresh': '🔄 Yangilash',
+    'w_error': '😕 Boʻlmadi',
+    'w_wait': '⏳ Kuting',
+    'w_none': 'Maʼlumot yoʻq',
+    'w_unsupported': '📈 Prognoz vidjeti hozircha mavjud emas — oynalarni matn bilan koʻrsataman.',
+})

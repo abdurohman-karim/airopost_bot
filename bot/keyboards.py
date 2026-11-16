@@ -47,7 +47,7 @@ def _lang_row(back: str) -> list[InlineKeyboardButton]:
 
 class MCb(CallbackData, prefix="m"):
     a: str          # list | add | open | refresh | profile | hourly | outlook | route | offline | edit | del | del_yes
-                    # | weekend | sub | sos
+                    # | weekend | sub | sos | widget
     id: int = 0
     p: int = 0      # страница или шаг времени
 
@@ -306,6 +306,7 @@ def peak(
     invite = [InlineKeyboardButton(text=loc["btn_hike_invite"], switch_inline_query=p.name)]
     rows = [
         [_btn(loc["btn_refresh"], MCb(a="refresh", id=p.id))],
+        [_btn(loc["btn_m_widget"], MCb(a="widget", id=p.id))],
         [_btn(loc["btn_m_profile"], MCb(a="profile", id=p.id)),
          _btn(loc["btn_m_hourly"], MCb(a="hourly", id=p.id))],
         [_btn(loc["btn_m_outlook"], MCb(a="outlook", id=p.id)), _btn(loc["btn_m_gear"], GearCb(id=p.id))],
@@ -317,7 +318,7 @@ def peak(
     extras = [_btn(loc["btn_near"], MCb(a="near", id=p.id))]
     if reports is not None:
         extras.insert(0, _btn(loc("btn_reports", n=reports), RepCb(a="list", id=p.id)))
-    rows.insert(6, extras)
+    rows.insert(7, extras)
     if p.public:
         region = p.region if p.region in REGIONS else "community"
         rows.append([_btn(loc["btn_m_catalog_back"], MCb(a="reg", id=REGIONS.index(region)))])

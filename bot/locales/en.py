@@ -876,3 +876,17 @@ STRINGS.update({
     'sf_lost': "🧭 <b>If you're lost</b>\n\n• Stop and calm down. Don't descend blindly into a gorge — there are often cliffs and waterfalls\n• Go back to where you last knew the way; stick to trails and ridges\n• Open 🆘 SOS — it has your coordinates for rescuers and the 112 number\n• Save battery: minimum brightness, turn off what you don't need\n• Getting dark — don't cross unfamiliar slopes at night: keep warm and wait for morning or help\n• Set a ⏱ check-in deadline before you go — then you'll be missed even if you can't call",
     'sf_avalanche': "🏔 <b>Avalanches</b>\n\n• Most dangerous after 30 cm+ of snowfall, in strong wind and during warming\n• Most avalanches release on 30–45° slopes; avoid gullies, lee slopes with wind-loaded snow and areas below cornices\n• Cross dangerous spots one at a time while the others wait somewhere safe and watch\n• Everyone carries a transceiver, shovel and probe — and knows how to use them\n• Check the avalanche indicator on the peak page and official bulletins — the bot's indicator is a weather-based estimate, not an expert forecast",
 })
+
+# ── forecast widget ──
+STRINGS.update({
+    'btn_m_widget': '📈 Forecast by day and hour',
+    'w_hint': 'Tap a day or an hour for details.',
+    'w_air': 'air',
+    'w_feels': 'feels',
+    'w_updated': 'Data as of',
+    'w_refresh': '🔄 Refresh',
+    'w_error': '😕 Failed',
+    'w_wait': '⏳ Wait',
+    'w_none': 'No data',
+    'w_unsupported': '📈 The forecast widget is not available yet — showing the windows as text.',
+})
