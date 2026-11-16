@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 import zlib
 from functools import lru_cache
 from html import escape
@@ -25,12 +26,27 @@ DATA_LIMIT = 1024         # байт: chat_data
 HTML_LIMIT = 4096         # байт после zlib -9 — так проверяет сервер Telegram
 MAX_DAYS = 7
 REFRESH_PREFIX = "r"      # запрос виджета «r<id вершины>»
+# Telegram может не пускать бота к виджетам (с 13.11.2026 обычным ботам отвечает
+# INPUT_MEDIA_WIDGET_NOT_ALLOWED). Тогда кнопку прячем и пробуем снова через это время.
+RETRY_SECONDS = 6 * 3600
 
 # Одно число — один символ: '#'..'}' без '\' (кавычки и обратная косая в JSON экранируются)
 _ALPHABET = "".join(chr(c) for c in range(35, 126) if c != 92)
 _MISSING = "~"
 _SHIFT = 60               # температура и ощущаемая: −60…+29 °C
 _TAGS = re.compile(r"<[^>]+>")
+
+
+_blocked_until = 0.0
+
+
+def available() -> bool:
+    return time.monotonic() >= _blocked_until
+
+
+def mark_blocked() -> None:
+    global _blocked_until
+    _blocked_until = time.monotonic() + RETRY_SECONDS
 
 
 def _enc(value: float | None, shift: int = 0) -> str:

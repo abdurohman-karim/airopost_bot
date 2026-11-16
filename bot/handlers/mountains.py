@@ -110,7 +110,10 @@ async def _peak_keyboard(
     subscribed = peak.id in await db.subscriptions(chat_id)
     reports = len(await db.reports(peak.catalog_id)) if peak.public else None
     # Публиковать можно, только если в боте настроен хотя бы один админ
-    return kb.peak(lang, peak, can_publish=bool(admins), subscribed=subscribed, share_url=share_url, reports=reports)
+    return kb.peak(
+        lang, peak, can_publish=bool(admins), subscribed=subscribed, share_url=share_url, reports=reports,
+        widget=widgets.available(),
+    )
 
 
 async def _add_and_open(
@@ -280,6 +283,8 @@ async def _send_widget(
     except TelegramBadRequest as e:
         # Виджеты новые: если Telegram их не принял — те же окна текстом, чтобы кнопка не была пустой
         log.warning("Виджет прогноза не отправлен: %s", e.message)
+        if "WIDGET_NOT_ALLOWED" in e.message:
+            widgets.mark_blocked()
         text = locales.get(lang)["w_unsupported"] + "\n\n" + mt.outlook(lang, peak, fc)
         await ui.show(bot, db, chat_id, text, kb.peak_back(lang, peak.id), message_id)
 

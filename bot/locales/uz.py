@@ -898,5 +898,5 @@ STRINGS.update({
     'w_error': '😕 Boʻlmadi',
     'w_wait': '⏳ Kuting',
     'w_none': 'Maʼlumot yoʻq',
-    'w_unsupported': '📈 Prognoz vidjeti hozircha mavjud emas — oynalarni matn bilan koʻrsataman.',
+    'w_unsupported': '📈 Telegram hozircha botlarga vidjet yuborishga ruxsat bermayapti — oynalarni matn bilan koʻrsataman.',
 })

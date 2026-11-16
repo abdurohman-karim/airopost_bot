@@ -296,7 +296,7 @@ def catalog_region(lang: str, region: str, peaks: list, page: int, pages: int) -
 
 def peak(
     lang: str, p, can_publish: bool = False, subscribed: bool = False, share_url: str | None = None,
-    reports: int | None = None,
+    reports: int | None = None, widget: bool = True,
 ) -> InlineKeyboardMarkup:
     """Вершина из каталога — только просмотр; своя — ещё правка, удаление и публикация."""
     loc = locales.get(lang)
@@ -306,7 +306,6 @@ def peak(
     invite = [InlineKeyboardButton(text=loc["btn_hike_invite"], switch_inline_query=p.name)]
     rows = [
         [_btn(loc["btn_refresh"], MCb(a="refresh", id=p.id))],
-        [_btn(loc["btn_m_widget"], MCb(a="widget", id=p.id))],
         [_btn(loc["btn_m_profile"], MCb(a="profile", id=p.id)),
          _btn(loc["btn_m_hourly"], MCb(a="hourly", id=p.id))],
         [_btn(loc["btn_m_outlook"], MCb(a="outlook", id=p.id)), _btn(loc["btn_m_gear"], GearCb(id=p.id))],
@@ -318,7 +317,9 @@ def peak(
     extras = [_btn(loc["btn_near"], MCb(a="near", id=p.id))]
     if reports is not None:
         extras.insert(0, _btn(loc("btn_reports", n=reports), RepCb(a="list", id=p.id)))
-    rows.insert(7, extras)
+    rows.insert(6, extras)
+    if widget:
+        rows.insert(1, [_btn(loc["btn_m_widget"], MCb(a="widget", id=p.id))])
     if p.public:
         region = p.region if p.region in REGIONS else "community"
         rows.append([_btn(loc["btn_m_catalog_back"], MCb(a="reg", id=REGIONS.index(region)))])

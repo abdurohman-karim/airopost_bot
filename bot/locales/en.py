@@ -888,5 +888,5 @@ STRINGS.update({
     'w_error': '😕 Failed',
     'w_wait': '⏳ Wait',
     'w_none': 'No data',
-    'w_unsupported': '📈 The forecast widget is not available yet — showing the windows as text.',
+    'w_unsupported': '📈 Telegram does not let bots send widgets yet — showing the windows as text.',
 })
